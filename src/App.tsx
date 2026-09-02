@@ -6,6 +6,7 @@ import {
   closeDecision,
   closeEvidence,
   closePreview,
+  commit_preview,
   export_decision,
   highlight_uncertainty,
   open_evidence,
@@ -229,18 +230,15 @@ export default function App() {
                   <button className="btn" onClick={closePreview}>
                     Keep original
                   </button>
-                  <button
-                    className="btn primary"
-                    onClick={() =>
-                      apply_correction({
-                        district: ws.scenarioPreview?.correction?.districtId,
-                        value: "seasonal",
-                        note: "The canal here is seasonal, not year-round.",
-                      })
-                    }
-                  >
-                    Apply correction
-                  </button>
+                  {ws.scenarioPreview.correction ? (
+                    <button className="btn primary" onClick={() => commit_preview()}>
+                      Apply correction
+                    </button>
+                  ) : (
+                    <button className="btn primary" onClick={() => commit_preview()}>
+                      Use this scenario
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

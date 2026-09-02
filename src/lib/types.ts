@@ -122,6 +122,7 @@ export type Approval = {
 
 export type ScenarioPreview = {
   label: string;
+  scenario: ScenarioId;
   correction?: Correction;
   before: { districtId: string; rank: number; score: number }[];
   after: { districtId: string; rank: number; score: number }[];

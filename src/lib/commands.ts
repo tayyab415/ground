@@ -1,7 +1,7 @@
 import { fetchNdvi } from "./analysis";
 import { canonicalJson, sha256Hex } from "./hash";
 import { SNAPSHOT, attachRankDelta, irrigationFor, lookupDistrictId, rankDistricts, uncertainDistrictIds } from "./rank";
-import { defaultCorrectionNote, irrigationClassFromValue } from "./irrigation";
+import { defaultCorrectionNote, irrigationClassFromValue, valueFromIrrigationClass } from "./irrigation";
 import {
   addCorrection,
   getState,
@@ -211,6 +211,7 @@ export function preview_scenario(input: {
     label: staged
       ? `${staged.to === "seasonal_canal" ? "Seasonal canal" : "Year-round canal"} (preview, not applied)`
       : `Scenario ${scenario} (preview)`,
+    scenario,
     correction: staged,
     before,
     after: next.candidates.map((c) => ({
@@ -423,6 +424,28 @@ export function closePreview() {
   patchState({ scenarioPreview: null });
 }
 
+export function commit_preview() {
+  const preview = getState().scenarioPreview;
+  if (!preview) return { ok: false as const, error: "No preview open." };
+  const corr = preview.correction;
+  if (corr) {
+    const value = valueFromIrrigationClass(corr.to);
+    if (!value) {
+      return { ok: false as const, error: `Cannot apply irrigation class ${corr.to} from this preview.` };
+    }
+    return apply_correction({
+      district: corr.districtId,
+      value,
+      note: corr.note,
+    });
+  }
+  if (preview.scenario !== getState().scenario) {
+    chooseScenario(preview.scenario);
+  }
+  closePreview();
+  return { ok: true as const, applied: "scenario" as const };
+}
+
 export function closeDecision() {
   patchState({ view: "desk" });
 }
@@ -527,6 +550,7 @@ export const commands = {
   highlight_uncertainty,
   preview_scenario,
   apply_correction,
+  commit_preview,
   export_decision,
   selectDistrict,
   runAnalysis,
