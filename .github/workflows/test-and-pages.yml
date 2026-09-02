@@ -29,6 +29,7 @@ jobs:
 
   pages:
     needs: test
+    continue-on-error: true
     runs-on: ubuntu-latest
     environment:
       name: github-pages
