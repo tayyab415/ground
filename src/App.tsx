@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import {
   apply_correction,
   approveDecision,
+  cancelDraw,
   chooseScenario,
   closeDecision,
   closeEvidence,
@@ -14,12 +15,14 @@ import {
   selectDistrict,
   setGeojson,
   show_candidates,
+  startDraw,
   toggleLayer,
 } from "./lib/commands";
 import { averageMetrics, choroplethLabel, choroplethMode, rankColor, statusLabel, weakCard } from "./lib/format";
 import type { LayerId, ScenarioId } from "./lib/types";
 import { useWorkspace } from "./lib/useWorkspace";
 import { registerWebMcpTools } from "./lib/webmcp";
+import { GroundChecks } from "./ui/GroundChecks";
 import { MapCanvas } from "./ui/MapCanvas";
 
 const LAYERS: { id: LayerId; label: string }[] = [
@@ -178,17 +181,48 @@ export default function App() {
             <button className="btn" onClick={() => highlight_uncertainty({ on: true })}>
               Flag uncertainty
             </button>
+            {ws.drawMode === "idle" ? (
+              <>
+                <button className="btn" onClick={() => startDraw("polygon")}>
+                  Polygon
+                </button>
+                <button className="btn" onClick={() => startDraw("lasso")}>
+                  Lasso
+                </button>
+              </>
+            ) : (
+              <button className="btn" onClick={() => cancelDraw()}>
+                Cancel {ws.drawMode}
+              </button>
+            )}
           </div>
+          <div className="gap-stack">
           {ws.layers.ndvi && ws.ndviGap ? (
-            <div className="gap-banner">NDVI gap — {ws.ndviGap.reason}</div>
+            <div className="gap-banner">NDVI — {ws.ndviGap.reason}</div>
           ) : null}
-          {ws.map.tiles === "gap" ? (
+          {ws.map.tiles === "gap" && ws.layers.roads ? (
             <div className="gap-banner">Map tiles gap — OSM raster did not load. District polygons still work.</div>
           ) : null}
+          {!ws.layers.roads ? (
+            <div className="gap-banner">OSM basemap off. Toggle Roads to show tiles.</div>
+          ) : null}
+          {ws.drawMode !== "idle" ? (
+            <div className="gap-banner">
+              {ws.drawMode === "lasso"
+                ? "Lasso: drag on the map, release to close. Esc cancels. Unsaved, this tab only."
+                : "Polygon: click vertices, double-click to close. Esc cancels. Unsaved, this tab only."}
+            </div>
+          ) : null}
+          </div>
           <MapCanvas />
           {ws.selection ? (
             <div className="sel-pill">
-              Selected district ({ws.selection.name}) · unsaved · {choroplethLabel(fillMode, ws.rankingMeta.ndviIncluded)}
+              {ws.selection.kind === "district"
+                ? `Selected district (${ws.selection.name})`
+                : ws.selection.kind === "point"
+                  ? `Point ${ws.selection.name}`
+                  : `${ws.selection.name}`}{" "}
+              · unsaved · {choroplethLabel(fillMode, ws.rankingMeta.ndviIncluded)}
             </div>
           ) : (
             <div className="sel-pill">{choroplethLabel(fillMode, ws.rankingMeta.ndviIncluded)} · No selection</div>
@@ -302,6 +336,7 @@ export default function App() {
                   </button>
                 </div>
               ) : null}
+              <GroundChecks checks={ws.groundChecks} districtId={open.districtId} />
               <button className="linkish" style={{ marginTop: 12 }} onClick={closeEvidence}>
                 Back to ranking
               </button>
@@ -346,6 +381,7 @@ export default function App() {
                   </button>
                 </article>
               ))}
+              {ws.candidates.length ? <GroundChecks checks={ws.groundChecks} /> : null}
             </>
           )}
         </aside>

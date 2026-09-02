@@ -49,10 +49,11 @@ export function emptyWorkspace(): Workspace {
       soil: true,
       elevation: true,
       mills: true,
-      roads: false,
+      roads: true,
     },
     scenario: "base",
     selection: null,
+    drawMode: "idle",
     candidates: [],
     rankingMeta: {
       computedAt: null,
@@ -66,6 +67,7 @@ export function emptyWorkspace(): Workspace {
     highlightedUncertainty: [],
     scenarioPreview: null,
     corrections: [],
+    groundChecks: [],
     timeline: [
       {
         id: nextId("t"),
@@ -150,6 +152,8 @@ export function getUnsavedChanges() {
     selection: state.selection,
     corrections: state.corrections.filter((c) => !c.committed),
     scenarioPreview: state.scenarioPreview,
+    groundChecks: state.groundChecks,
+    drawMode: state.drawMode,
     approvalPending: state.approval == null && state.candidates.length > 0,
   };
 }
