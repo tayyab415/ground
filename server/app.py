@@ -1,26 +1,28 @@
-"""Ground analysis sidecar.
+"""Ground analysis sidecar — private / optional.
 
-Cloud Run + Application Default Credentials only.
-  ee.Initialize(project='gen-lang-client-0261050164')
-  Places API (New) via ADC bearer token + x-goog-user-project.
+V1 judges use the static OSM desk. This process is NOT a public deploy.
 
-This service never ships a browser Maps key. If Earth Engine is slow or
-unavailable, it returns a gap — callers must not invent NDVI.
+Auth (both required in spirit; either is enough to reject anonymous compute):
+  - GROUND_SIDECAR_TOKEN: Authorization: Bearer <token> or X-Ground-Token
+  - Cloud Run: deploy with --no-allow-unauthenticated (IAM-only)
+
+If GROUND_SIDECAR_TOKEN is unset, /v1/ndvi and /v1/places/rice-mills always 401.
+CORS is not wide-open. Do not put a Maps JS key in the browser.
 """
 
 from __future__ import annotations
 
 import os
+import secrets
 import time
 from typing import Any
 
 from flask import Flask, jsonify, request
-from flask_cors import CORS
 
 PROJECT = os.environ.get("GOOGLE_CLOUD_PROJECT", "gen-lang-client-0261050164")
+SIDECAR_TOKEN = os.environ.get("GROUND_SIDECAR_TOKEN", "").strip()
 
 app = Flask(__name__)
-CORS(app)
 
 _ee_ok = False
 _ee_error: str | None = None
@@ -42,18 +44,49 @@ def init_ee() -> None:
 init_ee()
 
 
+def _presented_token() -> str:
+    auth = request.headers.get("Authorization", "")
+    if auth.lower().startswith("bearer "):
+        return auth[7:].strip()
+    return request.headers.get("X-Ground-Token", "").strip()
+
+
+def require_sidecar_auth():
+    """Reject anonymous compute. Token must be set AND match."""
+    if not SIDECAR_TOKEN:
+        return (
+            jsonify(
+                status="gap",
+                error="unauthorized",
+                reason="Sidecar is private. Set GROUND_SIDECAR_TOKEN and send it, or use Cloud Run IAM-only. Compute routes are not public.",
+            ),
+            401,
+        )
+    presented = _presented_token()
+    if not presented or not secrets.compare_digest(presented, SIDECAR_TOKEN):
+        return (
+            jsonify(
+                status="gap",
+                error="unauthorized",
+                reason="Missing or invalid sidecar token.",
+            ),
+            401,
+        )
+    return None
+
+
 @app.get("/health")
 def health():
-    return jsonify(ok=True, ee=_ee_ok, ee_error=_ee_error, project=PROJECT)
+    """Probe only. Does not run Earth Engine or Places."""
+    return jsonify(ok=True, sidecar="private", token_configured=bool(SIDECAR_TOKEN))
 
 
 @app.post("/v1/ndvi")
 def ndvi():
-    """Median Sentinel-2 NDVI around each district centroid.
-
-    On any failure, returns HTTP 200 with status=gap so the desk can show the
-    gap instead of inventing crop-health numbers.
-    """
+    """Median Sentinel-2 NDVI around each district centroid. Auth required."""
+    denied = require_sidecar_auth()
+    if denied:
+        return denied
     if not _ee_ok:
         return jsonify(
             status="gap",
@@ -124,12 +157,15 @@ def ndvi():
 
 @app.post("/v1/places/rice-mills")
 def rice_mills():
-    """Places API (New) text search via ADC. Never uses a browser key."""
+    """Places API (New) text search via ADC. Auth required. Never a browser key."""
+    denied = require_sidecar_auth()
+    if denied:
+        return denied
     try:
         import google.auth
         import google.auth.transport.requests
-        import urllib.request
         import json
+        import urllib.request
 
         creds, _ = google.auth.default(
             scopes=["https://www.googleapis.com/auth/cloud-platform"]

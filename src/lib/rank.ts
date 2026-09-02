@@ -1,8 +1,5 @@
 import snapshot from "../data/snapshot.json";
-import {
-  IRRIGATION_PRIORS,
-  SEASONAL_CORRECTION_PRIOR,
-} from "./irrigation";
+import { IRRIGATION_PRIORS, priorForClass } from "./irrigation";
 import type {
   Candidate,
   Correction,
@@ -116,6 +113,17 @@ function clamp(n: number, a: number, b: number) {
   return Math.max(a, Math.min(b, n));
 }
 
+export function lookupDistrictId(q: string): string | null {
+  const trimmed = q.trim();
+  if (!trimmed) return null;
+  const key = trimmed.toLowerCase().replace(/\s+/g, "-");
+  if (SNAPSHOT.districts[key]) return key;
+  const found = Object.values(SNAPSHOT.districts).find(
+    (d) => d.id === key || d.name.toLowerCase() === trimmed.toLowerCase(),
+  );
+  return found?.id ?? null;
+}
+
 export function irrigationFor(
   districtId: string,
   corrections: Correction[],
@@ -123,9 +131,7 @@ export function irrigationFor(
   const applied = [...corrections]
     .reverse()
     .find((c) => c.districtId === districtId && c.fact === "canal_irrigation");
-  if (applied) {
-    if (applied.to === "seasonal_canal") return SEASONAL_CORRECTION_PRIOR;
-  }
+  if (applied) return priorForClass(applied.to);
   return (
     IRRIGATION_PRIORS[districtId] ?? {
       class: "mixed_groundwater_surface",
@@ -321,13 +327,19 @@ export function activeWeights(
   const dropped: RankingMeta["droppedFactors"] = [];
   const present: string[] = [];
   for (const id of factorIds) {
-    const used = evidenceSets.some((set) => set.find((e) => e.id === id)?.usedInRanking);
+    const flags = evidenceSets.map((set) => Boolean(set.find((e) => e.id === id)?.usedInRanking));
+    const any = flags.some(Boolean);
+    const all = flags.length > 0 && flags.every(Boolean);
+    // NDVI must be complete across the pool or it is dropped. Partial coverage
+    // would otherwise zero-penalize districts with an explicit gap.
+    const used = id === "ndvi" ? all : any;
     if (!used) {
       const sample = evidenceSets[0]?.find((e) => e.id === id);
-      dropped.push({
-        id,
-        reason: sample?.source.note ?? `${id} not available`,
-      });
+      const reason =
+        id === "ndvi" && any && !all
+          ? "Partial NDVI coverage. Factor dropped from global weights so missing districts are not scored as 0."
+          : (sample?.source.note ?? `${id} not available`);
+      dropped.push({ id, reason });
     } else present.push(id);
   }
   const raw: Record<string, number> = {};
@@ -351,13 +363,21 @@ export function scoreEvidence(
   scenario: ScenarioId,
 ): number {
   const boost = scenarioWeightMultiplier(scenario);
-  let total = 0;
+  const usable: { id: string; w: number; score: number }[] = [];
+  let sum = 0;
   for (const [id, w] of Object.entries(weights)) {
     const item = evidence.find((e) => e.id === id);
-    if (!item || item.score == null) continue;
-    let s = item.score;
-    if (item.status === "unverified") s = clamp(s - boost.unverifiedPenalty, 0, 1);
-    total += s * w;
+    if (!item || item.score == null || !item.usedInRanking) continue;
+    usable.push({ id, w, score: item.score });
+    sum += w;
+  }
+  if (sum === 0) return 0;
+  let total = 0;
+  for (const row of usable) {
+    const item = evidence.find((e) => e.id === row.id);
+    let s = row.score;
+    if (item?.status === "unverified") s = clamp(s - boost.unverifiedPenalty, 0, 1);
+    total += s * (row.w / sum);
   }
   return total;
 }
@@ -384,6 +404,16 @@ export function rankDistricts(input: RankInput = {}): {
   const scenario = input.scenario ?? "base";
   const byId: Record<string, EvidenceItem[]> = {};
   for (const id of ids) byId[id] = buildEvidence(id, input);
+  const ndviComplete =
+    ids.length > 0 &&
+    ids.every((id) => byId[id]?.find((e) => e.id === "ndvi")?.status === "ok");
+  if (!ndviComplete) {
+    for (const id of ids) {
+      const item = byId[id]?.find((e) => e.id === "ndvi");
+      if (!item) continue;
+      item.usedInRanking = false;
+    }
+  }
   const { weights, dropped } = activeWeights(Object.values(byId), scenario);
   const scored = ids.map((id) => {
     const rec = SNAPSHOT.districts[id]!;
@@ -412,8 +442,8 @@ export function rankDistricts(input: RankInput = {}): {
     droppedFactors: dropped,
     ndviIncluded,
     note: ndviIncluded
-      ? "NDVI from Earth Engine is included."
-      : "NDVI is a gap. No crop-health number was invented. Ranking does not use NDVI.",
+      ? "NDVI from Earth Engine is included (complete sourced coverage)."
+      : "NDVI is a gap or only partial. No crop-health number was invented, and missing NDVI is not scored as 0.",
   };
   return { candidates, meta };
 }

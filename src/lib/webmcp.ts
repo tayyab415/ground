@@ -113,11 +113,11 @@ export const WEBMCP_TOOLS: ToolSpec[] = [
   {
     name: "preview_scenario",
     description:
-      "Preview a re-ranking without committing. Use for a seasonal-canal challenge on the selected or named district.",
+      "Preview a re-ranking without committing. Pass scenario to preview weight changes. Pass fact and value only to preview a canal correction; district is required then unless a district is already selected. Does not default to Gorakhpur or seasonal canal.",
     inputSchema: {
       type: "object",
       properties: {
-        district: { type: "string", description: "District name or id. Defaults to current selection or Gorakhpur." },
+        district: { type: "string", description: "District name or id when previewing a canal correction. No default." },
         fact: { type: "string", enum: ["canal_irrigation"] },
         value: { type: "string", enum: ["seasonal", "year-round"] },
         scenario: { type: "string", enum: ["base", "high_investment", "low_risk"] },
@@ -127,8 +127,9 @@ export const WEBMCP_TOOLS: ToolSpec[] = [
     execute: (input) =>
       preview_scenario({
         district: input.district ? String(input.district) : undefined,
-        fact: "canal_irrigation",
-        value: input.value === "year-round" ? "year-round" : "seasonal",
+        fact: input.fact === "canal_irrigation" ? "canal_irrigation" : undefined,
+        value:
+          input.value === "year-round" || input.value === "seasonal" ? input.value : undefined,
         scenario:
           input.scenario === "high_investment" || input.scenario === "low_risk" || input.scenario === "base"
             ? input.scenario
@@ -152,8 +153,9 @@ export const WEBMCP_TOOLS: ToolSpec[] = [
     execute: (input) =>
       apply_correction({
         district: input.district ? String(input.district) : undefined,
-        fact: "canal_irrigation",
-        value: input.value === "year-round" ? "year-round" : "seasonal",
+        fact: input.fact === "canal_irrigation" ? "canal_irrigation" : undefined,
+        value:
+          input.value === "year-round" || input.value === "seasonal" ? input.value : undefined,
         note: input.note ? String(input.note) : undefined,
       }),
   },

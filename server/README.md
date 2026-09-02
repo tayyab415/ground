@@ -1,23 +1,39 @@
-# Analysis sidecar (Cloud Run)
+# Analysis sidecar (optional, private)
 
-This service is optional. The Ground desk runs without it and shows **NDVI / Places as gaps**.
+Judges use the **static OSM desk**. This folder is not a default public deploy.
+Do not put `/v1/ndvi` or `/v1/places/rice-mills` on the public internet.
 
 ## Auth
 
-- Application Default Credentials only.
+Compute routes reject unauthenticated requests.
+
+1. **Token (required by the app):** set `GROUND_SIDECAR_TOKEN` and send
+   `Authorization: Bearer <token>` or `X-Ground-Token: <token>`.
+   If the env var is empty, those routes always return 401.
+2. **Cloud Run IAM-only:** deploy with `--no-allow-unauthenticated`. Never
+   `--allow-unauthenticated`.
+
+There is **no** `CORS(app)` wide-open policy. The public V1 desk does not call
+this sidecar (`VITE_ANALYSIS_URL` stays empty). Never put the sidecar token or a
+Maps JS key in the frontend bundle.
+
+Earth Engine / Places still use Application Default Credentials only:
+
 - `ee.Initialize(project='gen-lang-client-0261050164')`
-- Places API (New) uses the ADC bearer token and `X-Goog-User-Project: gen-lang-client-0261050164`.
-- Do not mint keys. Do not put a Maps JavaScript key in the browser.
+- Places API (New) via ADC bearer + `X-Goog-User-Project`
+- Do not mint keys
 
-## Deploy
-
-If you already have deploy rights on that GCP project (this repo does not mint them):
+## Deploy (IAM-only, not public)
 
 ```bash
+export GROUND_SIDECAR_TOKEN=  # generate a token; do not commit it
 gcloud run deploy ground-analysis \
   --source . \
   --region asia-south1 \
-  --project gen-lang-client-0261050164
+  --project gen-lang-client-0261050164 \
+  --no-allow-unauthenticated \
+  --set-env-vars GROUND_SIDECAR_TOKEN=$GROUND_SIDECAR_TOKEN
 ```
 
-Then set `VITE_ANALYSIS_URL` to the Cloud Run URL at **build** time for the desk. Leave it empty for a static GitHub Pages build.
+The static desk shows NDVI / Places as **gaps** unless a private operator
+points a non-public build at this service.

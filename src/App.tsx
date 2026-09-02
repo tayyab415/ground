@@ -15,7 +15,7 @@ import {
   show_candidates,
   toggleLayer,
 } from "./lib/commands";
-import { rankColor, statusLabel, weakCard } from "./lib/format";
+import { averageMetrics, choroplethLabel, choroplethMode, rankColor, statusLabel, weakCard } from "./lib/format";
 import type { LayerId, ScenarioId } from "./lib/types";
 import { useWorkspace } from "./lib/useWorkspace";
 import { registerWebMcpTools } from "./lib/webmcp";
@@ -47,7 +47,11 @@ export default function App() {
   }, []);
 
   const open = ws.candidates.find((c) => c.districtId === ws.openEvidenceDistrictId);
-  const avg = averages(ws.candidates.slice(0, ws.constraints.maxDistricts));
+  const avg = averageMetrics(
+    ws.candidates.slice(0, ws.constraints.maxDistricts),
+    ws.rankingMeta.ndviIncluded,
+  );
+  const fillMode = choroplethMode(ws.layers);
 
   return (
     <div className="desk">
@@ -182,9 +186,11 @@ export default function App() {
           ) : null}
           <MapCanvas />
           {ws.selection ? (
-            <div className="sel-pill">Selected district ({ws.selection.name}) · unsaved</div>
+            <div className="sel-pill">
+              Selected district ({ws.selection.name}) · unsaved · {choroplethLabel(fillMode, ws.rankingMeta.ndviIncluded)}
+            </div>
           ) : (
-            <div className="sel-pill">No selection</div>
+            <div className="sel-pill">{choroplethLabel(fillMode, ws.rankingMeta.ndviIncluded)} · No selection</div>
           )}
           {ws.scenarioPreview ? (
             <div className="modal-back" onClick={closePreview}>
@@ -350,8 +356,8 @@ export default function App() {
       <footer className="metrics">
         <Metric
           label="Avg crop health (NDVI)"
-          value={ws.rankingMeta.ndviIncluded ? avg.ndvi : "Gap"}
-          pct={ws.rankingMeta.ndviIncluded ? 0.7 : 0}
+          value={avg.ndvi}
+          pct={avg.ndviBar}
         />
         <Metric label="Avg soil suitability" value={avg.soil} pct={avg.soilN} />
         <Metric label="Avg elevation" value={avg.elev} pct={0.5} />
@@ -450,21 +456,4 @@ function Metric({ label, value, pct }: { label: string; value: string; pct: numb
 
 function nameOf(ws: ReturnType<typeof useWorkspace>, id: string) {
   return ws.candidates.find((c) => c.districtId === id)?.name ?? id;
-}
-
-function averages(cands: ReturnType<typeof useWorkspace>["candidates"]) {
-  if (!cands.length) return { ndvi: "—", soil: "—", soilN: 0, elev: "—" };
-  const soils = cands
-    .map((c) => c.evidence.find((e) => e.id === "soil")?.score)
-    .filter((n): n is number => n != null);
-  const elevs = cands
-    .map((c) => c.evidence.find((e) => e.id === "elevation")?.value)
-    .filter((n): n is number => typeof n === "number");
-  const soilN = soils.length ? soils.reduce((a, b) => a + b, 0) / soils.length : 0;
-  return {
-    ndvi: "Gap",
-    soil: soils.length ? soilN.toFixed(2) : "Gap",
-    soilN,
-    elev: elevs.length ? `${Math.round(elevs.reduce((a, b) => a + b, 0) / elevs.length)} m` : "Gap",
-  };
 }
