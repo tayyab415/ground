@@ -604,6 +604,19 @@ function defaultGroundCheckQuestion(districtName: string): string {
   return `Is canal irrigation in ${districtName} seasonal or year-round? Reply with a photo of the canal or command area and a short answer.`;
 }
 
+function newGroundCheckId(): string {
+  if (typeof globalThis.crypto?.randomUUID === "function") {
+    return `gc-${globalThis.crypto.randomUUID()}`;
+  }
+  const bytes = new Uint8Array(16);
+  if (typeof globalThis.crypto?.getRandomValues === "function") {
+    globalThis.crypto.getRandomValues(bytes);
+  } else {
+    for (let i = 0; i < bytes.length; i += 1) bytes[i] = Math.floor(Math.random() * 256);
+  }
+  return `gc-${[...bytes].map((b) => b.toString(16).padStart(2, "0")).join("")}`;
+}
+
 function fieldPathFor(check: {
   id: string;
   districtId: string;
@@ -645,7 +658,7 @@ export function send_ground_check(input: {
   const dueDays = input.dueDays ?? 7;
   const createdAt = new Date().toISOString();
   const dueAt = new Date(Date.now() + dueDays * 86400000).toISOString();
-  const id = `gc-${Date.now().toString(36)}`;
+  const id = newGroundCheckId();
   const check: GroundCheck = {
     id,
     districtId,

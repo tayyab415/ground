@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   apply_correction,
   approve_evidence,
@@ -428,6 +428,26 @@ describe("GroundCheck", () => {
     const approveEmpty = approve_evidence({ checkId: sent.check.id });
     expect(approveEmpty.ok).toBe(false);
     expect(String(approveEmpty.error)).toMatch(/no field reply/i);
+  });
+
+  it("does not reuse an ID when two checks are sent in the same millisecond", () => {
+    const now = 1_725_000_000_000;
+    const spy = vi.spyOn(Date, "now").mockReturnValue(now);
+    const first = send_ground_check({ district: "gorakhpur", question: "Canal in Gorakhpur?" });
+    const second = send_ground_check({ district: "ballia", question: "Canal in Ballia?" });
+    spy.mockRestore();
+    expect(first.ok && second.ok).toBe(true);
+    if (!first.ok || !second.ok) throw new Error("expected two sends");
+    expect(first.check.id).not.toBe(second.check.id);
+    expect(first.check.districtId).toBe("gorakhpur");
+    expect(second.check.districtId).toBe("ballia");
+    expect(getState().groundChecks.map((c) => c.id).sort()).toEqual(
+      [first.check.id, second.check.id].sort(),
+    );
+    expect(load_field_check(first.check.id)?.districtId).toBe("gorakhpur");
+    expect(load_field_check(second.check.id)?.districtId).toBe("ballia");
+    expect(load_field_check(first.check.id)?.question).toMatch(/Gorakhpur/);
+    expect(load_field_check(second.check.id)?.question).toMatch(/Ballia/);
   });
 
   it("approve_evidence only works after a real photo+answer submit", () => {
