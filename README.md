@@ -2,17 +2,75 @@
 
 A map that stops being a confident black box and becomes a checkable decision a human and an AI agent can both stand behind.
 
-Codex on the left. Ground in the browser on the right. The agent drives the map through WebMCP. Same session, two panes.
+**Live desk (V1):** [https://redeem-ips-accomplish-quotes.trycloudflare.com](https://redeem-ips-accomplish-quotes.trycloudflare.com)
 
-This is not an OpenStreetMap clone. OSM and Google Maps/Earth Engine are evidence. The product is the shared workspace: mission, candidates, layers, unsaved selection, corrections, field checks, decision record.
+Durable snapshot (one interstitial click, then the same desk): [raw.githack.com snapshot](https://raw.githack.com/tayyab415/ground/feat/ground-desk-v1/site/index.html). MIT license is [`LICENSE`](./LICENSE) at the repo root (also [`site/LICENSE`](./site/LICENSE)). GitHub Pages (`https://tayyab415.github.io/ground/`) is wired in Actions and will take over once Pages is enabled on the repo.
 
-See `PLAN.md` for the product shape, actors, WebMCP tiers, credentials, and the rice-resilience north-star journey.
+Codex on the left. Ground in the browser on the right. The agent drives the map through WebMCP (`document.modelContext.registerTool`). Same commands as the visible UI.
+
+This is not an OpenStreetMap clone. OSM tiles and public datasets are evidence. The product is the shared workspace: mission, candidates, layers, unsaved selection, corrections, decision record.
+
+See `PLAN.md` for the product shape. MIT license is in [`LICENSE`](./LICENSE).
+
+## North-star loop (V1)
+
+No field network. No chatbot in this app.
+
+1. Open the live desk. Click **Start analysis** (or ask the agent to call `show_candidates`).
+2. Ranked eastern Uttar Pradesh rice-belt districts appear. Gorakhpur leads because of an **unverified year-round canal** prior — not because of a fake NDVI.
+3. Open Gorakhpur evidence (`open_evidence` / View details). The weak card is canal irrigation.
+4. Human: the canal is seasonal. Apply the correction (`apply_correction`) or preview it first (`preview_scenario`).
+5. Ranking moves, with before/after ranks. NDVI stays a **gap** unless Earth Engine actually answered.
+6. **Approve** (human only). **Share** / `export_decision` writes a JSON record with sources, corrections, gaps, and a SHA-256 hash.
+
+## WebMCP tools
+
+Registered on the page when the browser supports WebMCP. Each tool calls the same function as the UI control.
+
+| Tool | Role |
+| --- | --- |
+| `get_workspace_state` | Mission, candidates, layers, unsaved changes |
+| `get_current_selection` | Unsaved district/polygon in this tab |
+| `get_visible_map_state` | Bounds, zoom, OSM tiles, layers |
+| `get_open_evidence` | Open evidence card |
+| `show_candidates` | Rank and overlay candidates |
+| `open_evidence` | Open a district evidence card |
+| `highlight_uncertainty` | Mark unverified assumptions |
+| `preview_scenario` | Re-rank preview (not committed) |
+| `apply_correction` | Apply canal correction and re-rank (unsaved) |
+| `export_decision` | Decision record + hash |
+
+If `document.modelContext` is missing, the desk still works. The agent just cannot see the tab until a WebMCP-capable client (ChatGPT/Codex desktop, or Chrome with WebMCP) loads the page.
+
+## Honest sources (V1)
+
+| Layer | Source | If missing |
+| --- | --- | --- |
+| Basemap | OSM raster tiles (no Maps JS key) | Tile gap banner; polygons still work |
+| Districts | `udit-001/india-maps-data` UP GeoJSON | Pool is 12 eastern rice-belt districts, not all 75 |
+| Soil | ISRIC SoilGrids 2.0 point sample at centroid | Factor dropped, weights renormalized |
+| Elevation | Open-Meteo Elevation API (SRTM-based) | Factor dropped |
+| NDVI | Earth Engine Sentinel-2 via a **private** sidecar (ADC). Not on the public desk. | **Gap. No number is invented.** |
+| Mills | Places API (New) via that same private sidecar, else OSM Overpass | Gap in this snapshot (Overpass 504) |
+| Irrigation | Explicit model prior (challengeable) | The canal fact is the point of the product |
+| Flood | Not loaded | Gap; flood constraint is not enforced |
+
+Mockup scores from the visual spec are **not** used.
+
+## Run locally
+
+```bash
+npm install
+npm test
+npm run dev
+```
+
+Optional analysis sidecar is **private** (token + Cloud Run IAM-only). Judges use the static desk; `VITE_ANALYSIS_URL` stays empty. See `server/README.md`. Do not publish `/v1/ndvi` or Places without auth.
+
+## Out of scope (V1)
+
+GroundCheck mobile/SMS, spawned Codex army, click-automation A/B, OSM clone, in-app chatbot.
 
 ## License
 
-MIT. Required for the OpenAI WebMCP Challenge (public repo, license visible in About).
-
-## Hackathon
-
-OpenAI WebMCP Challenge. Deadline 3 Sep 2026 1:00pm PDT (4 Sep 2026 1:30am IST).
-Live URL required. Demo video required. `document.modelContext.registerTool` required.
+MIT. Required for the OpenAI WebMCP Challenge (public repo, license visible).
