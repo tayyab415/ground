@@ -9,14 +9,9 @@ import { useWorkspace } from "../lib/useWorkspace";
 
 const OSM = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
 const OSM_ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
-const LIGHT = "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
-const LIGHT_ATTR =
-  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>';
 
-function makeTiles(roads: boolean) {
-  return roads
-    ? L.tileLayer(OSM, { attribution: OSM_ATTR, maxZoom: 18 })
-    : L.tileLayer(LIGHT, { attribution: LIGHT_ATTR, maxZoom: 19, subdomains: "abcd" });
+function makeTiles() {
+  return L.tileLayer(OSM, { attribution: OSM_ATTR, maxZoom: 19 });
 }
 
 function bindTileHealth(tiles: L.TileLayer) {
@@ -41,8 +36,6 @@ export function MapCanvas() {
   const wrapRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const layersRef = useRef<L.LayerGroup | null>(null);
-  const tilesRef = useRef<L.TileLayer | null>(null);
-  const roadsRef = useRef<boolean | null>(null);
   const ws = useWorkspace();
 
   useEffect(() => {
@@ -52,11 +45,9 @@ export function MapCanvas() {
       zoom: ws.map.zoom,
       zoomControl: true,
     });
-    const tiles = makeTiles(ws.layers.roads);
+    const tiles = makeTiles();
     bindTileHealth(tiles);
     tiles.addTo(map);
-    tilesRef.current = tiles;
-    roadsRef.current = ws.layers.roads;
     const group = L.layerGroup().addTo(map);
     layersRef.current = group;
     mapRef.current = map;
@@ -76,18 +67,6 @@ export function MapCanvas() {
       mapRef.current = null;
     };
   }, []);
-
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
-    if (roadsRef.current === ws.layers.roads && tilesRef.current) return;
-    if (tilesRef.current) map.removeLayer(tilesRef.current);
-    const tiles = makeTiles(ws.layers.roads);
-    bindTileHealth(tiles);
-    tiles.addTo(map);
-    tilesRef.current = tiles;
-    roadsRef.current = ws.layers.roads;
-  }, [ws.layers.roads]);
 
   useEffect(() => {
     const group = layersRef.current;
