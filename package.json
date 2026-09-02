@@ -9,7 +9,8 @@
     "build": "tsc -p tsconfig.app.json && vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "snapshot:docs": "npm run build && node scripts/snapshot-docs.mjs"
   },
   "dependencies": {
     "leaflet": "^1.9.4",

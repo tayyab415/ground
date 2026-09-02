@@ -2,7 +2,8 @@ name: test-and-pages
 
 on:
   push:
-    branches: [feat/ground-desk-v1, main]
+    branches: [main]
+  pull_request:
 
 permissions:
   contents: read
@@ -30,10 +31,12 @@ jobs:
         env:
           BASE_PATH: /ground/
       - uses: actions/upload-pages-artifact@v3
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         with:
           path: dist
 
   pages:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: test
     continue-on-error: true
     runs-on: ubuntu-latest

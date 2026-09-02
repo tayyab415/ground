@@ -2,9 +2,11 @@
 
 A map that stops being a confident black box and becomes a checkable decision a human and an AI agent can both stand behind.
 
-**Live desk (V1):** [https://redeem-ips-accomplish-quotes.trycloudflare.com](https://redeem-ips-accomplish-quotes.trycloudflare.com)
+**Preview (until GitHub Pages is enabled):** [raw.githack.com `/docs` snapshot](https://raw.githack.com/tayyab415/ground/cursor/ground-v1-refine-3ee2/docs/index.html) (one interstitial click, then the desk).
 
-Durable snapshot (one interstitial click, then the same desk): [raw.githack.com snapshot](https://raw.githack.com/tayyab415/ground/feat/ground-desk-v1/site/index.html). MIT license is [`LICENSE`](./LICENSE) at the repo root (also [`site/LICENSE`](./site/LICENSE)). GitHub Pages (`https://tayyab415.github.io/ground/`) is wired in Actions and will take over once Pages is enabled on the repo.
+**Live after Pages is on:** [https://tayyab415.github.io/ground/](https://tayyab415.github.io/ground/) — served from `/docs` (or repo root). GitHub Pages will not serve `/site`. Enable Pages: Settings → Pages → Deploy from a branch → `/docs`, or use the Actions deploy. Vite `BASE_PATH=/ground/` matches project Pages at that URL.
+
+MIT license is [`LICENSE`](./LICENSE) at the repo root (also copied into [`docs/LICENSE`](./docs/LICENSE)).
 
 Codex on the left. Ground in the browser on the right. The agent drives the map through WebMCP (`document.modelContext.registerTool`). Same commands as the visible UI.
 
@@ -16,16 +18,16 @@ See `PLAN.md` for the product shape. MIT license is in [`LICENSE`](./LICENSE).
 
 No field network. No chatbot in this app.
 
-1. Open the live desk. Click **Start analysis** (or ask the agent to call `show_candidates`).
+1. Open the desk. Click **Start analysis** (or ask the agent to call `show_candidates`).
 2. Ranked eastern Uttar Pradesh rice-belt districts appear. Gorakhpur leads because of an **unverified year-round canal** prior — not because of a fake NDVI.
 3. Open Gorakhpur evidence (`open_evidence` / View details). The weak card is canal irrigation.
 4. Human: the canal is seasonal. Apply the correction (`apply_correction`) or preview it first (`preview_scenario`).
-5. Ranking moves, with before/after ranks. NDVI stays a **gap** unless Earth Engine actually answered.
+5. Ranking moves, with before/after ranks. NDVI stays a **gap** unless a private IAM/token-gated Earth Engine sidecar actually answered.
 6. **Approve** (human only). **Share** / `export_decision` writes a JSON record with sources, corrections, gaps, and a SHA-256 hash.
 
 ## WebMCP tools
 
-Registered on the page when the browser supports WebMCP. Each tool calls the same function as the UI control.
+Registered on the page when the browser supports WebMCP. Each tool calls the same function as the UI control. Unsaved selection/corrections are readable only through WebMCP, not a REST API.
 
 | Tool | Role |
 | --- | --- |
@@ -33,6 +35,7 @@ Registered on the page when the browser supports WebMCP. Each tool calls the sam
 | `get_current_selection` | Unsaved district/polygon in this tab |
 | `get_visible_map_state` | Bounds, zoom, OSM tiles, layers |
 | `get_open_evidence` | Open evidence card |
+| `get_unsaved_changes` | Unsaved human selection and uncommitted corrections (this tab only) |
 | `show_candidates` | Rank and overlay candidates |
 | `open_evidence` | Open a district evidence card |
 | `highlight_uncertainty` | Mark unverified assumptions |
@@ -50,7 +53,7 @@ If `document.modelContext` is missing, the desk still works. The agent just cann
 | Districts | `udit-001/india-maps-data` UP GeoJSON | Pool is 12 eastern rice-belt districts, not all 75 |
 | Soil | ISRIC SoilGrids 2.0 point sample at centroid | Factor dropped, weights renormalized |
 | Elevation | Open-Meteo Elevation API (SRTM-based) | Factor dropped |
-| NDVI | Earth Engine Sentinel-2 via a **private** sidecar (ADC). Not on the public desk. | **Gap. No number is invented.** |
+| NDVI | Earth Engine Sentinel-2 via a **private** IAM/token-gated sidecar. Not on the public desk. | **Gap. No number is invented.** |
 | Mills | Places API (New) via that same private sidecar, else OSM Overpass | Gap in this snapshot (Overpass 504) |
 | Irrigation | Explicit model prior (challengeable) | The canal fact is the point of the product |
 | Flood | Not loaded | Gap; flood constraint is not enforced |
@@ -65,7 +68,9 @@ npm test
 npm run dev
 ```
 
-Optional analysis sidecar is **private** (token + Cloud Run IAM-only). Judges use the static desk; `VITE_ANALYSIS_URL` stays empty. See `server/README.md`. Do not publish `/v1/ndvi` or Places without auth.
+Optional analysis sidecar is **private** (token + Cloud Run IAM-only). Judges use the static desk; `VITE_ANALYSIS_URL` stays empty. See `server/README.md`. Do not publish `/v1/ndvi` or Places without auth. Do not CORS-open compute.
+
+The committed static desk lives in `/docs` (`npm run snapshot:docs`). That is what githack and branch Pages serve. `npm run build` with `BASE_PATH=/ground/` is the Actions Pages artifact.
 
 ## Out of scope (V1)
 
