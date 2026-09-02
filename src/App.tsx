@@ -311,7 +311,7 @@ export default function App() {
                   prior. NDVI is included only if Earth Engine answers.
                 </p>
               ) : null}
-              {ws.candidates.slice(0, 6).map((c) => (
+              {ws.candidates.map((c) => (
                 <article
                   key={c.districtId}
                   className={`cand ${ws.selection?.districtId === c.districtId ? "selected" : ""}`}

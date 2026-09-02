@@ -2,9 +2,9 @@
 
 A map that stops being a confident black box and becomes a checkable decision a human and an AI agent can both stand behind.
 
-**Live desk (V1):** [https://cdn.jsdelivr.net/gh/tayyab415/ground@feat/ground-desk-v1/site/index.html](https://cdn.jsdelivr.net/gh/tayyab415/ground@feat/ground-desk-v1/site/index.html)
+**Live desk (V1):** [https://redeem-ips-accomplish-quotes.trycloudflare.com](https://redeem-ips-accomplish-quotes.trycloudflare.com)
 
-Mirror: [statically.io](https://cdn.statically.io/gh/tayyab415/ground/feat/ground-desk-v1/site/index.html). MIT license is at [`LICENSE`](./LICENSE) in the repo and [`site/LICENSE`](./site/LICENSE) on the live origin. GitHub Pages (`https://tayyab415.github.io/ground/`) is wired in Actions and will take over once Pages is enabled on the repo.
+Durable snapshot (one interstitial click, then the same desk): [raw.githack.com snapshot](https://raw.githack.com/tayyab415/ground/feat/ground-desk-v1/site/index.html). MIT license is [`LICENSE`](./LICENSE) at the repo root (also [`site/LICENSE`](./site/LICENSE)). GitHub Pages (`https://tayyab415.github.io/ground/`) is wired in Actions and will take over once Pages is enabled on the repo.
 
 Codex on the left. Ground in the browser on the right. The agent drives the map through WebMCP (`document.modelContext.registerTool`). Same commands as the visible UI.
 
