@@ -121,6 +121,36 @@ def ee_filter_end_exclusive(inclusive_end: date) -> date:
     return inclusive_end + timedelta(days=1)
 
 
+MAX_NDVI_INCLUSIVE_DAYS = 30
+
+
+class NdviWindowError(ValueError):
+    """Caller asked for an NDVI date window this sidecar will not run."""
+
+
+def ndvi_date_window(payload: dict[str, Any]) -> tuple[date, date]:
+    """Inclusive start/end. Rejects start>end and windows longer than 30 inclusive days."""
+    try:
+        as_of = payload.get("endDate") or datetime.now(timezone.utc).date().isoformat()
+        end = datetime.fromisoformat(str(as_of)[:10]).date()
+        start = (
+            datetime.fromisoformat(str(payload["startDate"])[:10]).date()
+            if payload.get("startDate")
+            else (end - timedelta(days=MAX_NDVI_INCLUSIVE_DAYS - 1))
+        )
+    except ValueError as exc:
+        raise NdviWindowError("Invalid startDate or endDate.") from exc
+    if start > end:
+        raise NdviWindowError("startDate must not be after endDate.")
+    inclusive_days = (end - start).days + 1
+    if inclusive_days > MAX_NDVI_INCLUSIVE_DAYS:
+        raise NdviWindowError(
+            f"NDVI window is {inclusive_days} inclusive days; maximum is {MAX_NDVI_INCLUSIVE_DAYS}. "
+            "A 366-day caller window is not accepted."
+        )
+    return start, end
+
+
 def _adc_request(url: str, body: dict[str, Any], headers: dict[str, str], timeout: int = 12) -> dict[str, Any]:
     import google.auth
     import google.auth.transport.requests
@@ -155,6 +185,14 @@ def ndvi():
     denied = require_sidecar_auth()
     if denied:
         return denied
+    payload = request.get_json(silent=True) or {}
+    try:
+        start, end = ndvi_date_window(payload)
+    except NdviWindowError as exc:
+        return (
+            jsonify(status="gap", error="invalid_window", reason=str(exc), districts=[]),
+            400,
+        )
     if not _ee_ok:
         return jsonify(
             status="gap",
@@ -162,18 +200,10 @@ def ndvi():
             project=PROJECT,
             districts=[],
         )
-    payload = request.get_json(silent=True) or {}
     districts = payload.get("districts") or []
     try:
         import ee
 
-        as_of = payload.get("endDate") or datetime.now(timezone.utc).date().isoformat()
-        end = datetime.fromisoformat(str(as_of)[:10]).date()
-        start = (
-            datetime.fromisoformat(str(payload["startDate"])[:10]).date()
-            if payload.get("startDate")
-            else (end - timedelta(days=29))
-        )
         start_s, end_s = start.isoformat(), end.isoformat()
         end_exclusive = ee_filter_end_exclusive(end).isoformat()
         ids = [str(d.get("id") or "") for d in districts if d.get("id")]

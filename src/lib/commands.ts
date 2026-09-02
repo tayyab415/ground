@@ -688,13 +688,27 @@ export function send_ground_check(input: {
 
 export function approve_evidence(input: { checkId?: string } = {}) {
   const s = getState();
+  const requested = input.checkId?.trim();
+  if (requested) {
+    const check = s.groundChecks.find((c) => c.id === requested);
+    if (!check) {
+      return {
+        ok: false as const,
+        error: `No GroundCheck with id ${requested}. Will not fall back to another record.`,
+      };
+    }
+    return finishApprove(check);
+  }
   const check =
-    (input.checkId ? s.groundChecks.find((c) => c.id === input.checkId) : null) ??
     s.groundChecks.filter((c) => c.reply && c.status === "replied").at(-1) ??
     s.groundChecks.filter((c) => c.reply).at(-1);
   if (!check) {
     return { ok: false as const, error: "No GroundCheck to approve. Send one first." };
   }
+  return finishApprove(check);
+}
+
+function finishApprove(check: GroundCheck) {
   if (!check.reply) {
     return {
       ok: false as const,
@@ -707,6 +721,7 @@ export function approve_evidence(input: { checkId?: string } = {}) {
     approvedAt: new Date().toISOString(),
     approvedBy: "Human (this tab)",
   };
+  const s = getState();
   patchState({
     groundChecks: s.groundChecks.map((c) => (c.id === check.id ? next : c)),
   });

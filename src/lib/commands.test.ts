@@ -458,6 +458,33 @@ describe("GroundCheck", () => {
     expect(approved.check.status).toBe("approved");
   });
 
+  it("does not approve an unrelated replied check when checkId is stale", () => {
+    const stale = send_ground_check({ district: "gorakhpur", question: "Stale canal check?" });
+    const live = send_ground_check({ district: "ballia", question: "Any standing water?" });
+    expect(stale.ok && live.ok).toBe(true);
+    if (!stale.ok || !live.ok) throw new Error("expected two checks");
+    const replied = submit_field_reply({
+      checkId: live.check.id,
+      answer: "No standing water at the mill road.",
+      photoDataUrl: "data:image/jpeg;base64,/9j/aaaa",
+      gps: { lat: 25.76, lon: 84.15, accuracyM: 8 },
+      capturedAt: "2026-08-27T11:00:00Z",
+    });
+    expect(replied.ok).toBe(true);
+    const missing = approve_evidence({ checkId: "gc-stale-missing" });
+    expect(missing.ok).toBe(false);
+    expect(String(missing.error)).toMatch(/gc-stale-missing/i);
+    expect(String(missing.error)).toMatch(/will not fall back/i);
+    const after = getState().groundChecks;
+    expect(after.find((c) => c.id === live.check.id)?.status).toBe("replied");
+    expect(after.find((c) => c.id === live.check.id)?.status).not.toBe("approved");
+    expect(after.find((c) => c.id === stale.check.id)?.status).not.toBe("approved");
+    const fallback = approve_evidence();
+    expect(fallback.ok).toBe(true);
+    if (!fallback.ok) throw new Error("expected fallback approve");
+    expect(fallback.check.id).toBe(live.check.id);
+  });
+
   it("WebMCP GroundCheck tools call the same commands as the UI", () => {
     const sendTool = WEBMCP_TOOLS.find((t) => t.name === "send_ground_check");
     const approveTool = WEBMCP_TOOLS.find((t) => t.name === "approve_evidence");
