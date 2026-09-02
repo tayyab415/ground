@@ -6,7 +6,7 @@ import { registerWebMcpTools, WEBMCP_TOOLS } from "./webmcp";
 afterEach(() => replaceState(emptyWorkspace()));
 
 describe("webmcp registration", () => {
-  it("registers the ten desk commands when modelContext exists", async () => {
+  it("registers desk commands including get_unsaved_changes when modelContext exists", async () => {
     const names: string[] = [];
     const fake = {
       registerTool: async (tool: { name: string }) => {
