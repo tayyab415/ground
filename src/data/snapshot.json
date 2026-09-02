@@ -1,0 +1,593 @@
+{
+  "retrievedAt": "2026-09-02T19:55:47Z",
+  "districts": {
+    "siddharthnagar": {
+      "id": "siddharthnagar",
+      "name": "Siddharthnagar",
+      "centroid": {
+        "lon": 82.87355034813856,
+        "lat": 27.270058004910595
+      },
+      "soil": {
+        "properties": {
+          "clay": {
+            "mean": 295,
+            "unit": "g/kg",
+            "conversion_factor": null
+          },
+          "sand": {
+            "mean": 306,
+            "unit": "g/kg",
+            "conversion_factor": null
+          },
+          "silt": {
+            "mean": 399,
+            "unit": "g/kg",
+            "conversion_factor": null
+          }
+        },
+        "source": "ISRIC SoilGrids 2.0",
+        "url": "https://rest.isric.org/soilgrids/v2.0/docs",
+        "query": {
+          "lat": 27.27006,
+          "lon": 82.87355,
+          "depth": "0-5cm"
+        }
+      },
+      "elevation": {
+        "meters": 84.0,
+        "source": "Open-Meteo Elevation API (SRTM-based)",
+        "url": "https://open-meteo.com/en/docs/elevation-api",
+        "query": {
+          "lat": 27.27006,
+          "lon": 82.87355
+        }
+      },
+      "error": [],
+      "mills": {
+        "status": "gap",
+        "reason": "Overpass API unavailable",
+        "source": "OpenStreetMap via Overpass API"
+      }
+    },
+    "maharajganj": {
+      "id": "maharajganj",
+      "name": "Maharajganj",
+      "centroid": {
+        "lon": 83.53034288377317,
+        "lat": 27.200740263750557
+      },
+      "soil": {
+        "properties": {
+          "clay": {
+            "mean": 286,
+            "unit": "g/kg",
+            "conversion_factor": null
+          },
+          "sand": {
+            "mean": 319,
+            "unit": "g/kg",
+            "conversion_factor": null
+          },
+          "silt": {
+            "mean": 395,
+            "unit": "g/kg",
+            "conversion_factor": null
+          }
+        },
+        "source": "ISRIC SoilGrids 2.0",
+        "url": "https://rest.isric.org/soilgrids/v2.0/docs",
+        "query": {
+          "lat": 27.20074,
+          "lon": 83.53034,
+          "depth": "0-5cm"
+        }
+      },
+      "elevation": {
+        "meters": 90.0,
+        "source": "Open-Meteo Elevation API (SRTM-based)",
+        "url": "https://open-meteo.com/en/docs/elevation-api",
+        "query": {
+          "lat": 27.20074,
+          "lon": 83.53034
+        }
+      },
+      "error": [],
+      "mills": {
+        "status": "gap",
+        "reason": "Overpass API unavailable",
+        "source": "OpenStreetMap via Overpass API"
+      }
+    },
+    "kushinagar": {
+      "id": "kushinagar",
+      "name": "Kushinagar",
+      "centroid": {
+        "lon": 83.93383297860788,
+        "lat": 26.861411351644154
+      },
+      "soil": {
+        "properties": {
+          "clay": {
+            "mean": 253,
+            "unit": "g/kg",
+            "conversion_factor": null
+          },
+          "sand": {
+            "mean": 304,
+            "unit": "g/kg",
+            "conversion_factor": null
+          },
+          "silt": {
+            "mean": 443,
+            "unit": "g/kg",
+            "conversion_factor": null
+          }
+        },
+        "source": "ISRIC SoilGrids 2.0",
+        "url": "https://rest.isric.org/soilgrids/v2.0/docs",
+        "query": {
+          "lat": 26.86141,
+          "lon": 83.93383,
+          "depth": "0-5cm"
+        }
+      },
+      "elevation": {
+        "meters": 83.0,
+        "source": "Open-Meteo Elevation API (SRTM-based)",
+        "url": "https://open-meteo.com/en/docs/elevation-api",
+        "query": {
+          "lat": 26.86141,
+          "lon": 83.93383
+        }
+      },
+      "error": [],
+      "mills": {
+        "status": "gap",
+        "reason": "Overpass API unavailable",
+        "source": "OpenStreetMap via Overpass API"
+      }
+    },
+    "basti": {
+      "id": "basti",
+      "name": "Basti",
+      "centroid": {
+        "lon": 82.62625957833102,
+        "lat": 26.820654193188098
+      },
+      "soil": {
+        "properties": {
+          "clay": {
+            "mean": 221,
+            "unit": "g/kg",
+            "conversion_factor": null
+          },
+          "sand": {
+            "mean": 344,
+            "unit": "g/kg",
+            "conversion_factor": null
+          },
+          "silt": {
+            "mean": 435,
+            "unit": "g/kg",
+            "conversion_factor": null
+          }
+        },
+        "source": "ISRIC SoilGrids 2.0",
+        "url": "https://rest.isric.org/soilgrids/v2.0/docs",
+        "query": {
+          "lat": 26.82065,
+          "lon": 82.62626,
+          "depth": "0-5cm"
+        }
+      },
+      "elevation": {
+        "meters": 87.0,
+        "source": "Open-Meteo Elevation API (SRTM-based)",
+        "url": "https://open-meteo.com/en/docs/elevation-api",
+        "query": {
+          "lat": 26.82065,
+          "lon": 82.62626
+        }
+      },
+      "error": [],
+      "mills": {
+        "status": "gap",
+        "reason": "Overpass API unavailable",
+        "source": "OpenStreetMap via Overpass API"
+      }
+    },
+    "gorakhpur": {
+      "id": "gorakhpur",
+      "name": "Gorakhpur",
+      "centroid": {
+        "lon": 83.3588212360671,
+        "lat": 26.655408820091353
+      },
+      "soil": {
+        "properties": {
+          "clay": {
+            "mean": 258,
+            "unit": "g/kg",
+            "conversion_factor": null
+          },
+          "sand": {
+            "mean": 308,
+            "unit": "g/kg",
+            "conversion_factor": null
+          },
+          "silt": {
+            "mean": 434,
+            "unit": "g/kg",
+            "conversion_factor": null
+          }
+        },
+        "source": "ISRIC SoilGrids 2.0",
+        "url": "https://rest.isric.org/soilgrids/v2.0/docs",
+        "query": {
+          "lat": 26.65541,
+          "lon": 83.35882,
+          "depth": "0-5cm"
+        }
+      },
+      "elevation": {
+        "meters": 79.0,
+        "source": "Open-Meteo Elevation API (SRTM-based)",
+        "url": "https://open-meteo.com/en/docs/elevation-api",
+        "query": {
+          "lat": 26.65541,
+          "lon": 83.35882
+        }
+      },
+      "error": [],
+      "mills": {
+        "status": "gap",
+        "reason": "Overpass API unavailable",
+        "source": "OpenStreetMap via Overpass API"
+      }
+    },
+    "sant-kabir-nagar": {
+      "id": "sant-kabir-nagar",
+      "name": "Sant Kabir Nagar",
+      "centroid": {
+        "lon": 83.02710184917088,
+        "lat": 26.776757255262748
+      },
+      "soil": {
+        "properties": {
+          "clay": {
+            "mean": 244,
+            "unit": "g/kg",
+            "conversion_factor": null
+          },
+          "sand": {
+            "mean": 315,
+            "unit": "g/kg",
+            "conversion_factor": null
+          },
+          "silt": {
+            "mean": 441,
+            "unit": "g/kg",
+            "conversion_factor": null
+          }
+        },
+        "source": "ISRIC SoilGrids 2.0",
+        "url": "https://rest.isric.org/soilgrids/v2.0/docs",
+        "query": {
+          "lat": 26.77676,
+          "lon": 83.0271,
+          "depth": "0-5cm"
+        }
+      },
+      "elevation": {
+        "meters": 81.0,
+        "source": "Open-Meteo Elevation API (SRTM-based)",
+        "url": "https://open-meteo.com/en/docs/elevation-api",
+        "query": {
+          "lat": 26.77676,
+          "lon": 83.0271
+        }
+      },
+      "error": [],
+      "mills": {
+        "status": "gap",
+        "reason": "Overpass API unavailable",
+        "source": "OpenStreetMap via Overpass API"
+      }
+    },
+    "deoria": {
+      "id": "deoria",
+      "name": "Deoria",
+      "centroid": {
+        "lon": 83.83483080040564,
+        "lat": 26.42552103630476
+      },
+      "soil": {
+        "properties": {
+          "clay": {
+            "mean": 270,
+            "unit": "g/kg",
+            "conversion_factor": null
+          },
+          "sand": {
+            "mean": 297,
+            "unit": "g/kg",
+            "conversion_factor": null
+          },
+          "silt": {
+            "mean": 434,
+            "unit": "g/kg",
+            "conversion_factor": null
+          }
+        },
+        "source": "ISRIC SoilGrids 2.0",
+        "url": "https://rest.isric.org/soilgrids/v2.0/docs",
+        "query": {
+          "lat": 26.42552,
+          "lon": 83.83483,
+          "depth": "0-5cm"
+        }
+      },
+      "elevation": {
+        "meters": 71.0,
+        "source": "Open-Meteo Elevation API (SRTM-based)",
+        "url": "https://open-meteo.com/en/docs/elevation-api",
+        "query": {
+          "lat": 26.42552,
+          "lon": 83.83483
+        }
+      },
+      "error": [],
+      "mills": {
+        "status": "gap",
+        "reason": "Overpass API unavailable",
+        "source": "OpenStreetMap via Overpass API"
+      }
+    },
+    "ambedkar-nagar": {
+      "id": "ambedkar-nagar",
+      "name": "Ambedkar Nagar",
+      "centroid": {
+        "lon": 82.6664253241563,
+        "lat": 26.419372380435593
+      },
+      "soil": {
+        "properties": {
+          "clay": {
+            "mean": 198,
+            "unit": "g/kg",
+            "conversion_factor": null
+          },
+          "sand": {
+            "mean": 256,
+            "unit": "g/kg",
+            "conversion_factor": null
+          },
+          "silt": {
+            "mean": 547,
+            "unit": "g/kg",
+            "conversion_factor": null
+          }
+        },
+        "source": "ISRIC SoilGrids 2.0",
+        "url": "https://rest.isric.org/soilgrids/v2.0/docs",
+        "query": {
+          "lat": 26.41937,
+          "lon": 82.66643,
+          "depth": "0-5cm"
+        }
+      },
+      "elevation": {
+        "meters": 91.0,
+        "source": "Open-Meteo Elevation API (SRTM-based)",
+        "url": "https://open-meteo.com/en/docs/elevation-api",
+        "query": {
+          "lat": 26.41937,
+          "lon": 82.66643
+        }
+      },
+      "error": [],
+      "mills": {
+        "status": "gap",
+        "reason": "Overpass API unavailable",
+        "source": "OpenStreetMap via Overpass API"
+      }
+    },
+    "azamgarh": {
+      "id": "azamgarh",
+      "name": "Azamgarh",
+      "centroid": {
+        "lon": 83.06725426436999,
+        "lat": 26.045550089370405
+      },
+      "soil": {
+        "properties": {
+          "clay": {
+            "mean": 289,
+            "unit": "g/kg",
+            "conversion_factor": null
+          },
+          "sand": {
+            "mean": 292,
+            "unit": "g/kg",
+            "conversion_factor": null
+          },
+          "silt": {
+            "mean": 419,
+            "unit": "g/kg",
+            "conversion_factor": null
+          }
+        },
+        "source": "ISRIC SoilGrids 2.0",
+        "url": "https://rest.isric.org/soilgrids/v2.0/docs",
+        "query": {
+          "lat": 26.04555,
+          "lon": 83.06725,
+          "depth": "0-5cm"
+        }
+      },
+      "elevation": {
+        "meters": 79.0,
+        "source": "Open-Meteo Elevation API (SRTM-based)",
+        "url": "https://open-meteo.com/en/docs/elevation-api",
+        "query": {
+          "lat": 26.04555,
+          "lon": 83.06725
+        }
+      },
+      "error": [],
+      "mills": {
+        "status": "gap",
+        "reason": "Overpass API unavailable",
+        "source": "OpenStreetMap via Overpass API"
+      }
+    },
+    "mau": {
+      "id": "mau",
+      "name": "Mau",
+      "centroid": {
+        "lon": 83.56205204173072,
+        "lat": 26.047579611475506
+      },
+      "soil": {
+        "properties": {
+          "clay": {
+            "mean": 282,
+            "unit": "g/kg",
+            "conversion_factor": null
+          },
+          "sand": {
+            "mean": 305,
+            "unit": "g/kg",
+            "conversion_factor": null
+          },
+          "silt": {
+            "mean": 413,
+            "unit": "g/kg",
+            "conversion_factor": null
+          }
+        },
+        "source": "ISRIC SoilGrids 2.0",
+        "url": "https://rest.isric.org/soilgrids/v2.0/docs",
+        "query": {
+          "lat": 26.04758,
+          "lon": 83.56205,
+          "depth": "0-5cm"
+        }
+      },
+      "elevation": {
+        "meters": 69.0,
+        "source": "Open-Meteo Elevation API (SRTM-based)",
+        "url": "https://open-meteo.com/en/docs/elevation-api",
+        "query": {
+          "lat": 26.04758,
+          "lon": 83.56205
+        }
+      },
+      "error": [],
+      "mills": {
+        "status": "gap",
+        "reason": "Overpass API unavailable",
+        "source": "OpenStreetMap via Overpass API"
+      }
+    },
+    "ballia": {
+      "id": "ballia",
+      "name": "Ballia",
+      "centroid": {
+        "lon": 84.10219387627369,
+        "lat": 25.877163813606217
+      },
+      "soil": {
+        "properties": {
+          "clay": {
+            "mean": 258,
+            "unit": "g/kg",
+            "conversion_factor": null
+          },
+          "sand": {
+            "mean": 299,
+            "unit": "g/kg",
+            "conversion_factor": null
+          },
+          "silt": {
+            "mean": 443,
+            "unit": "g/kg",
+            "conversion_factor": null
+          }
+        },
+        "source": "ISRIC SoilGrids 2.0",
+        "url": "https://rest.isric.org/soilgrids/v2.0/docs",
+        "query": {
+          "lat": 25.87716,
+          "lon": 84.10219,
+          "depth": "0-5cm"
+        }
+      },
+      "elevation": {
+        "meters": 60.0,
+        "source": "Open-Meteo Elevation API (SRTM-based)",
+        "url": "https://open-meteo.com/en/docs/elevation-api",
+        "query": {
+          "lat": 25.87716,
+          "lon": 84.10219
+        }
+      },
+      "error": [],
+      "mills": {
+        "status": "gap",
+        "reason": "Overpass API unavailable",
+        "source": "OpenStreetMap via Overpass API"
+      }
+    },
+    "ghazipur": {
+      "id": "ghazipur",
+      "name": "Ghazipur",
+      "centroid": {
+        "lon": 83.55536402309676,
+        "lat": 25.62379154188192
+      },
+      "soil": {
+        "properties": {
+          "clay": {
+            "mean": 279,
+            "unit": "g/kg",
+            "conversion_factor": null
+          },
+          "sand": {
+            "mean": 262,
+            "unit": "g/kg",
+            "conversion_factor": null
+          },
+          "silt": {
+            "mean": 459,
+            "unit": "g/kg",
+            "conversion_factor": null
+          }
+        },
+        "source": "ISRIC SoilGrids 2.0",
+        "url": "https://rest.isric.org/soilgrids/v2.0/docs",
+        "query": {
+          "lat": 25.62379,
+          "lon": 83.55536,
+          "depth": "0-5cm"
+        }
+      },
+      "elevation": {
+        "meters": 67.0,
+        "source": "Open-Meteo Elevation API (SRTM-based)",
+        "url": "https://open-meteo.com/en/docs/elevation-api",
+        "query": {
+          "lat": 25.62379,
+          "lon": 83.55536
+        }
+      },
+      "error": [],
+      "mills": {
+        "status": "gap",
+        "reason": "Overpass API unavailable",
+        "source": "OpenStreetMap via Overpass API"
+      }
+    }
+  }
+}
