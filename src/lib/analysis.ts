@@ -15,6 +15,11 @@ function analysisUrl(): string | null {
 /**
  * Honest NDVI lookup. Never invents a number.
  * Missing URL, timeout, non-OK payload, or payload without sources → gap.
+ *
+ * The public desk leaves VITE_ANALYSIS_URL empty, so this is always a gap.
+ * A private operator may point a non-public build at the IAM/token-gated sidecar.
+ * Never put a sidecar token or Maps JS key in the frontend bundle; never call a
+ * CORS-open /v1/ndvi on the public internet.
  */
 export async function fetchNdvi(districts: { id: string; lat: number; lon: number }[]): Promise<AnalysisResponse> {
   const base = analysisUrl();
@@ -23,7 +28,7 @@ export async function fetchNdvi(districts: { id: string; lat: number; lon: numbe
       ndvi: {},
       gap: {
         reason:
-          "No analysis API configured. The public V1 desk does not call Earth Engine. NDVI is a gap.",
+          "No analysis API configured. The public desk does not call Earth Engine. NDVI is a gap unless a private IAM/token-gated sidecar answers.",
       },
     };
   }

@@ -5,6 +5,7 @@ import {
   export_decision,
   get_current_selection,
   get_open_evidence,
+  get_unsaved_changes,
   get_workspace_state,
   highlight_uncertainty,
   open_evidence,
@@ -164,6 +165,7 @@ describe("workspace commands", () => {
       "get_current_selection",
       "get_visible_map_state",
       "get_open_evidence",
+      "get_unsaved_changes",
       "show_candidates",
       "open_evidence",
       "highlight_uncertainty",
@@ -179,6 +181,26 @@ describe("workspace commands", () => {
     expect(sel.selection?.districtId).toBe("ballia");
     expect(sel.selection?.saved).toBe(false);
     expect(get_workspace_state().unsavedChanges.selection?.districtId).toBe("ballia");
+  });
+
+  it("exposes unsaved selection and corrections only through get_unsaved_changes", async () => {
+    const empty = get_unsaved_changes();
+    expect(empty.selection).toBeNull();
+    expect(empty.corrections).toEqual([]);
+    expect(empty.note).toMatch(/WebMCP/i);
+    selectDistrict("ballia");
+    await show_candidates();
+    apply_correction({ district: "gorakhpur", value: "seasonal" });
+    const unsaved = get_unsaved_changes();
+    expect(unsaved.selection?.districtId).toBe("ballia");
+    expect(unsaved.selection?.saved).toBe(false);
+    expect(unsaved.corrections).toHaveLength(1);
+    expect(unsaved.corrections[0]?.districtId).toBe("gorakhpur");
+    expect(unsaved.corrections[0]?.committed).toBe(false);
+    const tool = WEBMCP_TOOLS.find((t) => t.name === "get_unsaved_changes");
+    expect(tool?.annotations?.readOnlyHint).toBe(true);
+    const viaTool = tool!.execute({});
+    expect(viaTool).toEqual(unsaved);
   });
 
   it("open_evidence and highlight_uncertainty share UI command behavior", async () => {
