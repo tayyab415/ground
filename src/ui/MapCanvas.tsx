@@ -4,6 +4,7 @@ import "leaflet/dist/leaflet.css";
 import { selectDistrict, setMapView } from "../lib/commands";
 import { choroplethMode, districtFill, rankColor } from "../lib/format";
 import { SNAPSHOT } from "../lib/rank";
+import { resolveTileHealth } from "../lib/tiles";
 import { useWorkspace } from "../lib/useWorkspace";
 
 const OSM = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
@@ -16,6 +17,24 @@ function makeTiles(roads: boolean) {
   return roads
     ? L.tileLayer(OSM, { attribution: OSM_ATTR, maxZoom: 18 })
     : L.tileLayer(LIGHT, { attribution: LIGHT_ATTR, maxZoom: 19, subdomains: "abcd" });
+}
+
+function bindTileHealth(tiles: L.TileLayer) {
+  let loaded = 0;
+  let errors = 0;
+  const apply = (event: "tileload" | "tileerror" | "load") => {
+    const next = resolveTileHealth(loaded, errors, event);
+    if (next) setMapView({ tiles: next });
+  };
+  tiles.on("tileload", () => {
+    loaded += 1;
+    apply("tileload");
+  });
+  tiles.on("tileerror", () => {
+    errors += 1;
+    apply("tileerror");
+  });
+  tiles.on("load", () => apply("load"));
 }
 
 export function MapCanvas() {
@@ -34,7 +53,7 @@ export function MapCanvas() {
       zoomControl: true,
     });
     const tiles = makeTiles(ws.layers.roads);
-    tiles.on("tileerror", () => setMapView({ tiles: "gap" }));
+    bindTileHealth(tiles);
     tiles.addTo(map);
     tilesRef.current = tiles;
     roadsRef.current = ws.layers.roads;
@@ -64,7 +83,7 @@ export function MapCanvas() {
     if (roadsRef.current === ws.layers.roads && tilesRef.current) return;
     if (tilesRef.current) map.removeLayer(tilesRef.current);
     const tiles = makeTiles(ws.layers.roads);
-    tiles.on("tileerror", () => setMapView({ tiles: "gap" }));
+    bindTileHealth(tiles);
     tiles.addTo(map);
     tilesRef.current = tiles;
     roadsRef.current = ws.layers.roads;

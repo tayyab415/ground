@@ -185,6 +185,14 @@ export function irrigationClassFromValue(value: "seasonal" | "year-round"): Irri
   return value === "seasonal" ? "seasonal_canal" : "perennial_canal_assumed";
 }
 
+export function valueFromIrrigationClass(
+  cls: IrrigationClass,
+): "seasonal" | "year-round" | null {
+  if (cls === "seasonal_canal") return "seasonal";
+  if (cls === "perennial_canal_assumed") return "year-round";
+  return null;
+}
+
 export function priorForClass(cls: IrrigationClass): IrrigationPrior {
   if (cls === "seasonal_canal") return SEASONAL_CORRECTION_PRIOR;
   if (cls === "perennial_canal_assumed") return YEAR_ROUND_CORRECTION_PRIOR;

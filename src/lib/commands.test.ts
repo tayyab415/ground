@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import {
   apply_correction,
+  commit_preview,
   export_decision,
   get_current_selection,
   get_open_evidence,
@@ -220,5 +221,49 @@ describe("workspace commands", () => {
       expect(preview.preview.whatChanged.join(" ")).not.toMatch(/canal/i);
     }
     expect(get_workspace_state().candidates[0]?.districtId).toBe("gorakhpur");
+  });
+
+  it("commit_preview applies year-round from preview.correction.to, not seasonal", async () => {
+    await show_candidates();
+    selectDistrict("gorakhpur");
+    const preview = preview_scenario({
+      district: "kushinagar",
+      fact: "canal_irrigation",
+      value: "year-round",
+    });
+    expect(preview.ok).toBe(true);
+    if ("preview" in preview) {
+      expect(preview.preview?.correction?.to).toBe("perennial_canal_assumed");
+      expect(preview.preview?.correction?.districtId).toBe("kushinagar");
+    }
+    const committed = commit_preview();
+    expect(committed.ok).toBe(true);
+    const corrections = get_workspace_state().unsavedChanges.corrections;
+    expect(corrections).toHaveLength(1);
+    expect(corrections[0]?.districtId).toBe("kushinagar");
+    expect(corrections[0]?.to).toBe("perennial_canal_assumed");
+    expect(corrections[0]?.to).not.toBe("seasonal_canal");
+    const g = getState().candidates.find((c) => c.districtId === "gorakhpur");
+    expect(g?.evidence.find((e) => e.id === "irrigation")?.status).toBe("unverified");
+    const k = getState().candidates.find((c) => c.districtId === "kushinagar");
+    expect(k?.evidence.find((e) => e.id === "irrigation")?.value).toBe("perennial_canal_assumed");
+  });
+
+  it("commit_preview on a scenario-only preview does not write a canal correction", async () => {
+    await show_candidates();
+    selectDistrict("gorakhpur");
+    const preview = preview_scenario({ scenario: "low_risk" });
+    expect(preview.ok).toBe(true);
+    if ("preview" in preview) expect(preview.preview?.correction).toBeUndefined();
+    const committed = commit_preview();
+    expect(committed.ok).toBe(true);
+    if ("applied" in committed) expect(committed.applied).toBe("scenario");
+    const after = get_workspace_state();
+    expect(after.unsavedChanges.corrections).toHaveLength(0);
+    expect(after.unsavedChanges.scenarioPreview).toBeNull();
+    expect(getState().scenario).toBe("low_risk");
+    const g = getState().candidates.find((c) => c.districtId === "gorakhpur");
+    expect(g?.evidence.find((e) => e.id === "irrigation")?.status).toBe("unverified");
+    expect(g?.evidence.find((e) => e.id === "irrigation")?.value).toBe("perennial_canal_assumed");
   });
 });
