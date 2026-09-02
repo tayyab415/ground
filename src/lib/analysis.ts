@@ -58,6 +58,7 @@ export async function fetchNdvi(districts: { id: string; lat: number; lon: numbe
     }
     const ndvi: NdviLookup = {};
     for (const row of body.districts ?? []) {
+      if (!row.id) continue;
       if (typeof row.ndvi !== "number" || !row.source?.name) continue;
       if (!Number.isFinite(row.ndvi) || row.ndvi < -1 || row.ndvi > 1) continue;
       ndvi[row.id] = {
@@ -71,21 +72,43 @@ export async function fetchNdvi(districts: { id: string; lat: number; lon: numbe
         endDate: row.endDate ?? "",
       };
     }
-    if (Object.keys(ndvi).length === 0) {
-      return {
-        ndvi: {},
-        gap: {
-          reason: "Earth Engine returned no sourced NDVI values. Nothing was invented.",
-        },
-      };
-    }
-    return { ndvi, gap: null };
+    return finalizeNdviCoverage(
+      districts.map((d) => d.id),
+      ndvi,
+    );
   } catch (err) {
     const reason = err instanceof Error ? err.message : "Earth Engine request failed";
     return { ndvi: {}, gap: { reason: `Earth Engine unavailable: ${reason}` } };
   } finally {
     clearTimeout(t);
   }
+}
+
+/**
+ * gap:null only when every requested district has a sourced NDVI.
+ * Partial coverage keeps real values for evidence but is still a gap for ranking/banner.
+ */
+export function finalizeNdviCoverage(requestedIds: string[], ndvi: NdviLookup): AnalysisResponse {
+  const wanted = requestedIds.filter(Boolean);
+  const present = wanted.filter((id) => ndvi[id] != null);
+  const missing = wanted.filter((id) => ndvi[id] == null);
+  if (present.length === 0) {
+    return {
+      ndvi: {},
+      gap: {
+        reason: "Earth Engine returned no sourced NDVI values. Nothing was invented.",
+      },
+    };
+  }
+  if (missing.length > 0) {
+    return {
+      ndvi,
+      gap: {
+        reason: `Partial NDVI: sourced values for ${present.length}/${wanted.length} requested districts (missing ${missing.join(", ")}). Not treated as complete coverage; ranking does not include NDVI.`,
+      },
+    };
+  }
+  return { ndvi, gap: null };
 }
 
 export function analysisConfigured(): boolean {
