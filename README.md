@@ -50,8 +50,8 @@ If `document.modelContext` is missing, the desk still works. The agent just cann
 | Districts | `udit-001/india-maps-data` UP GeoJSON | Pool is 12 eastern rice-belt districts, not all 75 |
 | Soil | ISRIC SoilGrids 2.0 point sample at centroid | Factor dropped, weights renormalized |
 | Elevation | Open-Meteo Elevation API (SRTM-based) | Factor dropped |
-| NDVI | Earth Engine Sentinel-2 via Cloud Run + ADC | **Gap. No number is invented.** |
-| Mills | Places API (New) via ADC, else OSM Overpass | Gap in this snapshot (Overpass 504) |
+| NDVI | Earth Engine Sentinel-2 via a **private** sidecar (ADC). Not on the public desk. | **Gap. No number is invented.** |
+| Mills | Places API (New) via that same private sidecar, else OSM Overpass | Gap in this snapshot (Overpass 504) |
 | Irrigation | Explicit model prior (challengeable) | The canal fact is the point of the product |
 | Flood | Not loaded | Gap; flood constraint is not enforced |
 
@@ -65,7 +65,7 @@ npm test
 npm run dev
 ```
 
-Optional analysis sidecar (ADC, never a browser key): see `server/README.md`. Set `VITE_ANALYSIS_URL` at build time. Leave it empty for the public static desk.
+Optional analysis sidecar is **private** (token + Cloud Run IAM-only). Judges use the static desk; `VITE_ANALYSIS_URL` stays empty. See `server/README.md`. Do not publish `/v1/ndvi` or Places without auth.
 
 ## Out of scope (V1)
 

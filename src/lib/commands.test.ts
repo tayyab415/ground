@@ -12,7 +12,7 @@ import {
   show_candidates,
 } from "./commands";
 import { buildEvidence, rankDistricts, SNAPSHOT } from "./rank";
-import { emptyWorkspace, replaceState } from "./store";
+import { emptyWorkspace, getState, replaceState } from "./store";
 import { WEBMCP_TOOLS } from "./webmcp";
 
 afterEach(() => {
@@ -33,8 +33,9 @@ describe("honesty", () => {
     }
   });
 
-  it("only uses NDVI when a sourced value is supplied", () => {
-    const ranked = rankDistricts({
+  it("does not use partial NDVI as a global factor (no zero-penalty)", () => {
+    const without = rankDistricts({ ndvi: {} });
+    const partial = rankDistricts({
       ndvi: {
         gorakhpur: {
           value: 0.41,
@@ -44,11 +45,42 @@ describe("honesty", () => {
         },
       },
     });
+    expect(partial.meta.ndviIncluded).toBe(false);
+    expect(partial.meta.droppedFactors.some((d) => d.id === "ndvi")).toBe(true);
+    const g = partial.candidates.find((c) => c.districtId === "gorakhpur");
+    const ndvi = g?.evidence.find((e) => e.id === "ndvi");
+    expect(ndvi?.value).toBe(0.41);
+    expect(ndvi?.usedInRanking).toBe(false);
+    const ballia = partial.candidates.find((c) => c.districtId === "ballia");
+    expect(ballia?.evidence.find((e) => e.id === "ndvi")?.status).toBe("gap");
+    const g0 = without.candidates.find((c) => c.districtId === "gorakhpur")?.score;
+    const b0 = without.candidates.find((c) => c.districtId === "ballia")?.score;
+    const g1 = g?.score;
+    const b1 = ballia?.score;
+    expect(g0).toBeDefined();
+    expect(b0).toBeDefined();
+    expect(g1).toBeCloseTo(g0 as number, 5);
+    expect(b1).toBeCloseTo(b0 as number, 5);
+  });
+
+  it("includes NDVI in ranking only when every district has a sourced value", () => {
+    const ndvi = Object.fromEntries(
+      Object.keys(SNAPSHOT.districts).map((id) => [
+        id,
+        {
+          value: id === "gorakhpur" ? 0.41 : 0.3,
+          source: { name: "Google Earth Engine", note: "complete fixture" },
+          startDate: "2023-06-01",
+          endDate: "2024-12-31",
+        },
+      ]),
+    );
+    const ranked = rankDistricts({ ndvi });
     expect(ranked.meta.ndviIncluded).toBe(true);
-    const g = ranked.candidates.find((c) => c.districtId === "gorakhpur");
-    expect(g?.evidence.find((e) => e.id === "ndvi")?.value).toBe(0.41);
-    const other = ranked.candidates.find((c) => c.districtId === "ballia");
-    expect(other?.evidence.find((e) => e.id === "ndvi")?.status).toBe("gap");
+    expect(ranked.candidates[0]?.evidence.find((e) => e.id === "ndvi")?.usedInRanking).toBe(true);
+    expect(ranked.candidates.every((c) => c.evidence.find((e) => e.id === "ndvi")?.status === "ok")).toBe(
+      true,
+    );
   });
 
   it("uses SoilGrids and elevation receipts, not mockup scores", () => {
@@ -106,7 +138,21 @@ describe("canal challenge", () => {
     expect(irrigItem?.status).toBe("corrected");
     expect(String(irrigItem?.display).toLowerCase()).toMatch(/seasonal/);
     expect(after.unsavedChanges.corrections.length).toBeGreaterThan(0);
+    expect(after.unsavedChanges.corrections[0]?.from).toBe("perennial_canal_assumed");
+    expect(after.unsavedChanges.corrections[0]?.to).toBe("seasonal_canal");
     expect(irrig).toBeFalsy();
+  });
+
+  it("honors year-round corrections and refuses a no-op record", async () => {
+    await show_candidates();
+    const seasonal = apply_correction({ district: "Kushinagar", value: "year-round" });
+    expect(seasonal.ok).toBe(true);
+    const k = getState().candidates.find((c) => c.districtId === "kushinagar");
+    expect(k?.evidence.find((e) => e.id === "irrigation")?.value).toBe("perennial_canal_assumed");
+    expect(get_workspace_state().unsavedChanges.corrections.at(-1)?.from).toBe("seasonal_canal");
+    const noop = apply_correction({ district: "gorakhpur", value: "year-round" });
+    expect(noop.ok).toBe(false);
+    expect(String(noop.error)).toMatch(/no-op/i);
   });
 });
 
@@ -152,5 +198,27 @@ describe("workspace commands", () => {
     expect(record.gaps.some((g) => g.toLowerCase().includes("ndvi"))).toBe(true);
     expect(record.sources.some((s) => s.name.includes("SoilGrids"))).toBe(true);
     expect(record.ranking.candidates[0]?.evidence.find((e) => e.id === "ndvi")?.status).toBe("gap");
+  });
+
+  it("resolves apply_correction against SNAPSHOT and errors on unknown districts", async () => {
+    await show_candidates();
+    selectDistrict("ballia");
+    const unknown = apply_correction({ district: "not-a-district", value: "seasonal" });
+    expect(unknown.ok).toBe(false);
+    expect(String(unknown.error)).toMatch(/unknown district/i);
+    expect(get_workspace_state().unsavedChanges.corrections.length).toBe(0);
+    expect(get_workspace_state().unsavedChanges.selection?.districtId).toBe("ballia");
+  });
+
+  it("does not default preview_scenario to a seasonal Gorakhpur canal", async () => {
+    await show_candidates();
+    const preview = preview_scenario({ scenario: "low_risk" });
+    expect(preview.ok).toBe(true);
+    if ("preview" in preview && preview.preview) {
+      expect(preview.preview.correction).toBeUndefined();
+      expect(preview.preview.whatChanged.join(" ")).toMatch(/low_risk/);
+      expect(preview.preview.whatChanged.join(" ")).not.toMatch(/canal/i);
+    }
+    expect(get_workspace_state().candidates[0]?.districtId).toBe("gorakhpur");
   });
 });

@@ -1,4 +1,4 @@
-import type { IrrigationPrior } from "./types";
+import type { IrrigationClass, IrrigationPrior } from "./types";
 
 /**
  * Irrigation priors are MODEL ASSUMPTIONS, not measured canal flow.
@@ -156,3 +156,43 @@ export const SEASONAL_CORRECTION_PRIOR: IrrigationPrior = {
     note: "Applied in this browser session. Not persisted until export/approve.",
   },
 };
+
+export const YEAR_ROUND_CORRECTION_PRIOR: IrrigationPrior = {
+  class: "perennial_canal_assumed",
+  score: 0.93,
+  label: "Canal irrigation corrected to year-round",
+  status: "corrected",
+  assumption: "Human correction: canal treated as year-round supply.",
+  source: {
+    name: "Human local knowledge",
+    note: "Applied in this browser session. Not persisted until export/approve.",
+  },
+};
+
+export const MIXED_CORRECTION_PRIOR: IrrigationPrior = {
+  class: "mixed_groundwater_surface",
+  score: 0.78,
+  label: "Irrigation corrected to mixed groundwater and surface water",
+  status: "corrected",
+  assumption: "Human correction: mixed groundwater and surface water, not a single perennial canal.",
+  source: {
+    name: "Human local knowledge",
+    note: "Applied in this browser session. Not persisted until export/approve.",
+  },
+};
+
+export function irrigationClassFromValue(value: "seasonal" | "year-round"): IrrigationClass {
+  return value === "seasonal" ? "seasonal_canal" : "perennial_canal_assumed";
+}
+
+export function priorForClass(cls: IrrigationClass): IrrigationPrior {
+  if (cls === "seasonal_canal") return SEASONAL_CORRECTION_PRIOR;
+  if (cls === "perennial_canal_assumed") return YEAR_ROUND_CORRECTION_PRIOR;
+  return MIXED_CORRECTION_PRIOR;
+}
+
+export function defaultCorrectionNote(value: "seasonal" | "year-round"): string {
+  return value === "seasonal"
+    ? "The canal here is seasonal, not year-round."
+    : "The canal here is treated as year-round.";
+}

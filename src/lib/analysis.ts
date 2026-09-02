@@ -23,7 +23,7 @@ export async function fetchNdvi(districts: { id: string; lat: number; lon: numbe
       ndvi: {},
       gap: {
         reason:
-          "No analysis API configured (VITE_ANALYSIS_URL empty). Earth Engine runs only on Cloud Run with ADC. NDVI is a gap.",
+          "No analysis API configured. The public V1 desk does not call Earth Engine. NDVI is a gap.",
       },
     };
   }

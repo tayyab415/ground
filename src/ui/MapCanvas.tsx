@@ -2,17 +2,28 @@ import { useEffect, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { selectDistrict, setMapView } from "../lib/commands";
-import { rankColor } from "../lib/format";
+import { choroplethMode, districtFill, rankColor } from "../lib/format";
 import { SNAPSHOT } from "../lib/rank";
 import { useWorkspace } from "../lib/useWorkspace";
 
 const OSM = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
-const ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
+const OSM_ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
+const LIGHT = "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
+const LIGHT_ATTR =
+  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>';
+
+function makeTiles(roads: boolean) {
+  return roads
+    ? L.tileLayer(OSM, { attribution: OSM_ATTR, maxZoom: 18 })
+    : L.tileLayer(LIGHT, { attribution: LIGHT_ATTR, maxZoom: 19, subdomains: "abcd" });
+}
 
 export function MapCanvas() {
   const wrapRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const layersRef = useRef<L.LayerGroup | null>(null);
+  const tilesRef = useRef<L.TileLayer | null>(null);
+  const roadsRef = useRef<boolean | null>(null);
   const ws = useWorkspace();
 
   useEffect(() => {
@@ -22,12 +33,11 @@ export function MapCanvas() {
       zoom: ws.map.zoom,
       zoomControl: true,
     });
-    const tiles = L.tileLayer(OSM, {
-      attribution: ATTR,
-      maxZoom: 18,
-    });
+    const tiles = makeTiles(ws.layers.roads);
     tiles.on("tileerror", () => setMapView({ tiles: "gap" }));
     tiles.addTo(map);
+    tilesRef.current = tiles;
+    roadsRef.current = ws.layers.roads;
     const group = L.layerGroup().addTo(map);
     layersRef.current = group;
     mapRef.current = map;
@@ -50,9 +60,21 @@ export function MapCanvas() {
 
   useEffect(() => {
     const map = mapRef.current;
+    if (!map) return;
+    if (roadsRef.current === ws.layers.roads && tilesRef.current) return;
+    if (tilesRef.current) map.removeLayer(tilesRef.current);
+    const tiles = makeTiles(ws.layers.roads);
+    tiles.on("tileerror", () => setMapView({ tiles: "gap" }));
+    tiles.addTo(map);
+    tilesRef.current = tiles;
+    roadsRef.current = ws.layers.roads;
+  }, [ws.layers.roads]);
+
+  useEffect(() => {
     const group = layersRef.current;
-    if (!map || !group) return;
+    if (!group) return;
     group.clearLayers();
+    const mode = choroplethMode(ws.layers);
     if (ws.layers.districts && ws.geojson) {
       const gj = L.geoJSON(ws.geojson, {
         style: (feat) => {
@@ -60,21 +82,30 @@ export function MapCanvas() {
           const cand = ws.candidates.find((c) => c.districtId === id);
           const selected = ws.selection?.districtId === id;
           const uncertain = ws.highlightedUncertainty.includes(id ?? "");
-          const color = cand ? rankColor(cand.rank) : "#64748b";
+          const outline = cand ? rankColor(cand.rank) : "#64748b";
+          const fill = districtFill(mode, cand);
           return {
-            color: selected ? "#0f172a" : color,
+            color: selected ? "#0f172a" : outline,
             weight: selected ? 3 : uncertain ? 2.5 : 1.5,
             dashArray: uncertain ? "6 4" : undefined,
-            fillColor: cand ? color : "#94a3b8",
-            fillOpacity: selected ? 0.55 : cand ? 0.35 : 0.08,
+            fillColor: fill,
+            fillOpacity: selected ? 0.6 : cand ? 0.45 : 0.08,
           };
         },
         onEachFeature: (feat, layer) => {
           const id = (feat.properties as { id?: string }).id;
           const name = (feat.properties as { name?: string }).name ?? id;
           const cand = ws.candidates.find((c) => c.districtId === id);
+          const fillHint =
+            mode === "rank"
+              ? "rank"
+              : mode === "ndvi"
+                ? "NDVI fill"
+                : mode === "soil"
+                  ? "soil fill"
+                  : "elevation fill";
           layer.bindTooltip(
-            cand ? `${cand.rank}. ${name}  ${cand.scoreDisplay}` : name ?? "",
+            cand ? `${cand.rank}. ${name}  ${cand.scoreDisplay} · ${fillHint}` : name ?? "",
           );
           layer.on("click", () => {
             if (id) selectDistrict(id);
@@ -96,13 +127,7 @@ export function MapCanvas() {
         }
       }
     }
-  }, [
-    ws.geojson,
-    ws.candidates,
-    ws.selection,
-    ws.layers,
-    ws.highlightedUncertainty,
-  ]);
+  }, [ws.geojson, ws.candidates, ws.selection, ws.layers, ws.highlightedUncertainty]);
 
   useEffect(() => {
     const map = mapRef.current;

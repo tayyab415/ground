@@ -1,6 +1,7 @@
 import { fetchNdvi } from "./analysis";
 import { canonicalJson, sha256Hex } from "./hash";
-import { SNAPSHOT, attachRankDelta, rankDistricts, uncertainDistrictIds } from "./rank";
+import { SNAPSHOT, attachRankDelta, irrigationFor, lookupDistrictId, rankDistricts, uncertainDistrictIds } from "./rank";
+import { defaultCorrectionNote, irrigationClassFromValue } from "./irrigation";
 import {
   addCorrection,
   getState,
@@ -14,7 +15,6 @@ import type {
   Candidate,
   Correction,
   DecisionRecord,
-  IrrigationClass,
   LayerId,
   ScenarioId,
   Selection,
@@ -158,31 +158,44 @@ export function preview_scenario(input: {
   scenario?: ScenarioId;
 } = {}) {
   const s = getState();
-  const districtId =
-    (input.district ? candidateByNameOrId(input.district)?.districtId : null) ??
-    s.selection?.districtId ??
-    "gorakhpur";
-  const fact = input.fact ?? "canal_irrigation";
-  const value = input.value ?? "seasonal";
   if (s.candidates.length === 0) {
     return { ok: false, error: "No ranking yet. Call show_candidates first." };
   }
-  const staged: Correction | undefined =
-    fact === "canal_irrigation"
-      ? {
-          id: `preview-${Date.now()}`,
-          districtId,
-          fact,
-          from: "perennial_canal_assumed",
-          to: value === "seasonal" ? "seasonal_canal" : "perennial_canal_assumed",
-          note:
-            value === "seasonal"
-              ? "Preview: canal treated as seasonal, not year-round."
-              : "Preview: canal treated as year-round.",
-          appliedAt: new Date().toISOString(),
-          committed: false,
-        }
-      : undefined;
+  const canalRequested = input.fact != null || input.value != null;
+  let staged: Correction | undefined;
+  let districtId: string | undefined;
+  if (canalRequested) {
+    if (input.district) {
+      const resolved = lookupDistrictId(input.district);
+      if (!resolved) {
+        return { ok: false, error: `Unknown district: ${input.district}` };
+      }
+      districtId = resolved;
+    } else if (s.selection?.districtId) {
+      districtId = s.selection.districtId;
+    } else {
+      return { ok: false, error: "No district selected. Pass district or select one." };
+    }
+    const value = input.value ?? "seasonal";
+    const to = irrigationClassFromValue(value);
+    const from = irrigationFor(districtId, s.corrections).class;
+    if (from === to) {
+      return { ok: false, error: `Irrigation class is already ${to}. Preview would be a no-op.` };
+    }
+    staged = {
+      id: `preview-${Date.now()}`,
+      districtId,
+      fact: "canal_irrigation",
+      from,
+      to,
+      note:
+        value === "seasonal"
+          ? "Preview: canal treated as seasonal, not year-round."
+          : "Preview: canal treated as year-round.",
+      appliedAt: new Date().toISOString(),
+      committed: false,
+    };
+  }
   const scenario = input.scenario ?? s.scenario;
   const before = s.candidates.map((c) => ({
     districtId: c.districtId,
@@ -195,10 +208,9 @@ export function preview_scenario(input: {
     scenario,
   });
   const preview = {
-    label:
-      value === "seasonal"
-        ? "Seasonal canal (preview, not applied)"
-        : `Scenario ${scenario} (preview)`,
+    label: staged
+      ? `${staged.to === "seasonal_canal" ? "Seasonal canal" : "Year-round canal"} (preview, not applied)`
+      : `Scenario ${scenario} (preview)`,
     correction: staged,
     before,
     after: next.candidates.map((c) => ({
@@ -222,21 +234,31 @@ export function apply_correction(input: {
   note?: string;
 } = {}) {
   const s = getState();
-  const districtId =
-    (input.district ? candidateByNameOrId(input.district)?.districtId : null) ??
-    s.selection?.districtId;
-  if (!districtId) {
+  let districtId: string | undefined;
+  if (input.district) {
+    const resolved = lookupDistrictId(input.district);
+    if (!resolved) {
+      return { ok: false, error: `Unknown district: ${input.district}` };
+    }
+    districtId = resolved;
+  } else if (s.selection?.districtId) {
+    districtId = s.selection.districtId;
+  } else {
     return { ok: false, error: "No district selected. Select a district or pass district." };
   }
   const value = input.value ?? "seasonal";
-  const to: IrrigationClass = value === "seasonal" ? "seasonal_canal" : "perennial_canal_assumed";
+  const to = irrigationClassFromValue(value);
+  const from = irrigationFor(districtId, s.corrections).class;
+  if (from === to) {
+    return { ok: false, error: `Irrigation class is already ${to}. Correction would be a no-op.` };
+  }
   const correction: Correction = {
     id: `corr-${Date.now()}`,
     districtId,
     fact: "canal_irrigation",
-    from: "perennial_canal_assumed",
+    from,
     to,
-    note: input.note ?? "The canal here is seasonal, not year-round.",
+    note: input.note ?? defaultCorrectionNote(value),
     appliedAt: new Date().toISOString(),
     committed: false,
   };
