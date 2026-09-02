@@ -210,7 +210,7 @@ export const WEBMCP_TOOLS: ToolSpec[] = [
     inputSchema: {
       type: "object",
       properties: {
-        checkId: { type: "string", description: "GroundCheck id. Defaults to the latest replied check." },
+        checkId: { type: "string", description: "GroundCheck id. If supplied and unknown, error — no fallback. Omit to approve the latest replied check in this tab." },
       },
       additionalProperties: false,
     },
