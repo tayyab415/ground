@@ -103,6 +103,18 @@ export function get_open_evidence() {
   };
 }
 
+/** Unsaved tab state for WebMCP. Not a REST/API snapshot. */
+export function get_unsaved_changes() {
+  const unsaved = getUnsavedChanges();
+  return {
+    selection: unsaved.selection,
+    corrections: unsaved.corrections,
+    scenarioPreview: unsaved.scenarioPreview,
+    approvalPending: unsaved.approvalPending,
+    note: "Unsaved human selection and corrections exist only in this browser tab. An agent can read them only through WebMCP, not a public API.",
+  };
+}
+
 export async function show_candidates(input: {
   limit?: number;
   runAnalysis?: boolean;
@@ -555,6 +567,7 @@ export const commands = {
   get_current_selection,
   get_visible_map_state,
   get_open_evidence,
+  get_unsaved_changes,
   show_candidates,
   open_evidence,
   highlight_uncertainty,

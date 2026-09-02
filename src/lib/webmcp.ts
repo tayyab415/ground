@@ -3,6 +3,7 @@ import {
   export_decision,
   get_current_selection,
   get_open_evidence,
+  get_unsaved_changes,
   get_visible_map_state,
   get_workspace_state,
   highlight_uncertainty,
@@ -61,6 +62,14 @@ export const WEBMCP_TOOLS: ToolSpec[] = [
     inputSchema: emptyObject,
     annotations: { readOnlyHint: true },
     execute: () => get_open_evidence(),
+  },
+  {
+    name: "get_unsaved_changes",
+    description:
+      "Return unsaved human selection, uncommitted corrections, and any open preview in this tab. This state is not persisted and is visible to an agent only through WebMCP.",
+    inputSchema: emptyObject,
+    annotations: { readOnlyHint: true },
+    execute: () => get_unsaved_changes(),
   },
   {
     name: "show_candidates",
