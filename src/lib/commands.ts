@@ -1,5 +1,5 @@
 import { fetchNdvi } from "./analysis";
-import { findStoredCheck, writeStoredCheck, writeStoredReply } from "./fieldStore";
+import { findStoredCheck, readStoredChecks, writeStoredCheck, writeStoredReply } from "./fieldStore";
 import { polygonFromLonLat, vertexCount } from "./geo";
 import { canonicalJson, sha256Hex } from "./hash";
 import { SNAPSHOT, attachRankDelta, irrigationFor, lookupDistrictId, rankDistricts, uncertainDistrictIds } from "./rank";
@@ -687,10 +687,16 @@ export function send_ground_check(input: {
 }
 
 export function approve_evidence(input: { checkId?: string } = {}) {
-  const s = getState();
-  const requested = input.checkId?.trim();
-  if (requested) {
-    const check = s.groundChecks.find((c) => c.id === requested);
+  const supplied = input.checkId !== undefined && input.checkId !== null;
+  if (supplied) {
+    const requested = String(input.checkId).trim();
+    if (!requested) {
+      return {
+        ok: false as const,
+        error: "checkId is empty. Will not fall back to another record.",
+      };
+    }
+    const check = load_field_check(requested);
     if (!check) {
       return {
         ok: false as const,
@@ -699,13 +705,22 @@ export function approve_evidence(input: { checkId?: string } = {}) {
     }
     return finishApprove(check);
   }
-  const check =
-    s.groundChecks.filter((c) => c.reply && c.status === "replied").at(-1) ??
-    s.groundChecks.filter((c) => c.reply).at(-1);
+  const check = latestRepliedCheck();
   if (!check) {
     return { ok: false as const, error: "No GroundCheck to approve. Send one first." };
   }
   return finishApprove(check);
+}
+
+function latestRepliedCheck(): GroundCheck | null {
+  const pools = [getState().groundChecks, readStoredChecks()];
+  for (const pool of pools) {
+    const replied = pool.filter((c) => c.reply && c.status === "replied").at(-1);
+    if (replied) return replied;
+    const anyReply = pool.filter((c) => c.reply).at(-1);
+    if (anyReply) return anyReply;
+  }
+  return null;
 }
 
 function finishApprove(check: GroundCheck) {
@@ -722,8 +737,11 @@ function finishApprove(check: GroundCheck) {
     approvedBy: "Human (this tab)",
   };
   const s = getState();
+  const inDesk = s.groundChecks.some((c) => c.id === check.id);
   patchState({
-    groundChecks: s.groundChecks.map((c) => (c.id === check.id ? next : c)),
+    groundChecks: inDesk
+      ? s.groundChecks.map((c) => (c.id === check.id ? next : c))
+      : [...s.groundChecks, next],
   });
   writeStoredCheck(next);
   pushTimeline("approve_evidence", `Approved field evidence for ${check.districtName}.`);

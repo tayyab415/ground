@@ -485,6 +485,56 @@ describe("GroundCheck", () => {
     expect(fallback.check.id).toBe(live.check.id);
   });
 
+  it("does not treat whitespace-only checkId as omitted fallback", () => {
+    const live = send_ground_check({ district: "ballia", question: "Any standing water?" });
+    expect(live.ok).toBe(true);
+    if (!live.ok) throw new Error("expected send");
+    const replied = submit_field_reply({
+      checkId: live.check.id,
+      answer: "No standing water.",
+      photoDataUrl: "data:image/jpeg;base64,/9j/aaaa",
+      gps: { lat: 25.76, lon: 84.15, accuracyM: 8 },
+      capturedAt: "2026-08-27T11:00:00Z",
+    });
+    expect(replied.ok).toBe(true);
+    const blank = approve_evidence({ checkId: "   " });
+    expect(blank.ok).toBe(false);
+    expect(String(blank.error)).toMatch(/empty/i);
+    expect(String(blank.error)).toMatch(/will not fall back/i);
+    expect(getState().groundChecks.find((c) => c.id === live.check.id)?.status).toBe("replied");
+    const viaTool = WEBMCP_TOOLS.find((t) => t.name === "approve_evidence")!.execute({
+      checkId: "\t  ",
+    }) as { ok: boolean; error?: string };
+    expect(viaTool.ok).toBe(false);
+    expect(String(viaTool.error)).toMatch(/empty/i);
+    expect(getState().groundChecks.find((c) => c.id === live.check.id)?.status).toBe("replied");
+  });
+
+  it("approves a replied check from same-tab localStorage after a desk reload", () => {
+    const sent = send_ground_check({ district: "gorakhpur", question: "Is the canal seasonal?" });
+    expect(sent.ok).toBe(true);
+    if (!sent.ok) throw new Error("expected send");
+    const replied = submit_field_reply({
+      checkId: sent.check.id,
+      answer: "Seasonal. The canal is dry in May.",
+      photoDataUrl: "data:image/jpeg;base64,/9j/aaaa",
+      gps: { lat: 26.76, lon: 83.37, accuracyM: 12 },
+      capturedAt: "2026-08-27T10:00:00Z",
+    });
+    expect(replied.ok).toBe(true);
+    replaceState(emptyWorkspace());
+    expect(getState().groundChecks).toEqual([]);
+    const loaded = load_field_check(sent.check.id);
+    expect(loaded?.status).toBe("replied");
+    expect(loaded?.reply?.answer).toMatch(/Seasonal/);
+    const approved = approve_evidence({ checkId: sent.check.id });
+    expect(approved.ok).toBe(true);
+    if (!approved.ok) throw new Error("expected approve from store");
+    expect(approved.check.id).toBe(sent.check.id);
+    expect(approved.check.status).toBe("approved");
+    expect(getState().groundChecks.find((c) => c.id === sent.check.id)?.status).toBe("approved");
+  });
+
   it("WebMCP GroundCheck tools call the same commands as the UI", () => {
     const sendTool = WEBMCP_TOOLS.find((t) => t.name === "send_ground_check");
     const approveTool = WEBMCP_TOOLS.find((t) => t.name === "approve_evidence");
