@@ -1,17 +1,15 @@
 import { useEffect, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { selectDistrict, setMapView } from "../lib/commands";
+import { cancelDraw, selectDistrict, setDrawnSelection, setMapView } from "../lib/commands";
 import { choroplethMode, districtFill, rankColor } from "../lib/format";
 import { SNAPSHOT } from "../lib/rank";
-import { resolveTileHealth } from "../lib/tiles";
+import { getState } from "../lib/store";
+import { OSM_ATTR, OSM_TILE_URL, resolveTileHealth, tileUrlForRoads } from "../lib/tiles";
 import { useWorkspace } from "../lib/useWorkspace";
 
-const OSM = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
-const OSM_ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
-
 function makeTiles() {
-  return L.tileLayer(OSM, { attribution: OSM_ATTR, maxZoom: 19 });
+  return L.tileLayer(OSM_TILE_URL, { attribution: OSM_ATTR, maxZoom: 19 });
 }
 
 function bindTileHealth(tiles: L.TileLayer) {
@@ -36,6 +34,8 @@ export function MapCanvas() {
   const wrapRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const layersRef = useRef<L.LayerGroup | null>(null);
+  const drawRef = useRef<L.LayerGroup | null>(null);
+  const tilesRef = useRef<L.TileLayer | null>(null);
   const ws = useWorkspace();
 
   useEffect(() => {
@@ -45,11 +45,10 @@ export function MapCanvas() {
       zoom: ws.map.zoom,
       zoomControl: true,
     });
-    const tiles = makeTiles();
-    bindTileHealth(tiles);
-    tiles.addTo(map);
     const group = L.layerGroup().addTo(map);
+    const draw = L.layerGroup().addTo(map);
     layersRef.current = group;
+    drawRef.current = draw;
     mapRef.current = map;
     map.on("moveend", () => {
       const b = map.getBounds();
@@ -65,8 +64,27 @@ export function MapCanvas() {
     return () => {
       map.remove();
       mapRef.current = null;
+      tilesRef.current = null;
     };
   }, []);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const url = tileUrlForRoads(ws.layers.roads);
+    if (url) {
+      if (!tilesRef.current) {
+        const tiles = makeTiles();
+        bindTileHealth(tiles);
+        tiles.addTo(map);
+        tilesRef.current = tiles;
+      }
+    } else if (tilesRef.current) {
+      map.removeLayer(tilesRef.current);
+      tilesRef.current = null;
+      setMapView({ tiles: "ok" });
+    }
+  }, [ws.layers.roads]);
 
   useEffect(() => {
     const group = layersRef.current;
@@ -78,7 +96,7 @@ export function MapCanvas() {
         style: (feat) => {
           const id = (feat?.properties as { id?: string } | null)?.id;
           const cand = ws.candidates.find((c) => c.districtId === id);
-          const selected = ws.selection?.districtId === id;
+          const selected = ws.selection?.kind === "district" && ws.selection.districtId === id;
           const uncertain = ws.highlightedUncertainty.includes(id ?? "");
           const outline = cand ? rankColor(cand.rank) : "#64748b";
           const fill = districtFill(mode, cand);
@@ -106,6 +124,7 @@ export function MapCanvas() {
             cand ? `${cand.rank}. ${name}  ${cand.scoreDisplay} · ${fillHint}` : name ?? "",
           );
           layer.on("click", () => {
+            if (getState().drawMode !== "idle") return;
             if (id) selectDistrict(id);
           });
         },
@@ -128,10 +147,108 @@ export function MapCanvas() {
   }, [ws.geojson, ws.candidates, ws.selection, ws.layers, ws.highlightedUncertainty]);
 
   useEffect(() => {
+    const group = drawRef.current;
+    if (!group) return;
+    group.clearLayers();
+    const geom = ws.selection?.polygon;
+    if (!geom || ws.selection?.kind === "district") return;
+    if (ws.selection?.kind === "point" && ws.selection.point) {
+      L.circleMarker([ws.selection.point.lat, ws.selection.point.lon], {
+        radius: 7,
+        color: "#1d4ed8",
+        fillOpacity: 0.9,
+      })
+        .bindTooltip("Unsaved point")
+        .addTo(group);
+      return;
+    }
+    L.geoJSON(geom, {
+      style: {
+        color: "#1d4ed8",
+        weight: 2,
+        fillColor: "#3b82f6",
+        fillOpacity: 0.25,
+        dashArray: "4 3",
+      },
+    }).addTo(group);
+  }, [ws.selection]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    if (ws.drawMode === "idle") {
+      map.dragging.enable();
+      return;
+    }
+    map.dragging.disable();
+    const pts: L.LatLng[] = [];
+    const draft = L.polyline([], { color: "#1d4ed8", weight: 2 }).addTo(map);
+
+    const finish = (kind: "polygon" | "lasso") => {
+      if (pts.length >= 3) {
+        setDrawnSelection({
+          kind,
+          coordinates: pts.map((p) => [p.lng, p.lat]),
+        });
+      } else {
+        cancelDraw();
+      }
+    };
+
+    const onKey = (ev: KeyboardEvent) => {
+      if (ev.key === "Escape") cancelDraw();
+    };
+    window.addEventListener("keydown", onKey);
+
+    if (ws.drawMode === "lasso") {
+      const onDown = (e: L.LeafletMouseEvent) => {
+        pts.push(e.latlng);
+        draft.setLatLngs(pts);
+      };
+      const onMove = (e: L.LeafletMouseEvent) => {
+        if ((e.originalEvent as MouseEvent).buttons !== 1 && pts.length === 0) return;
+        if ((e.originalEvent as MouseEvent).buttons === 1) {
+          pts.push(e.latlng);
+          draft.setLatLngs(pts);
+        }
+      };
+      const onUp = () => finish("lasso");
+      map.on("mousedown", onDown);
+      map.on("mousemove", onMove);
+      map.on("mouseup", onUp);
+      return () => {
+        map.off("mousedown", onDown);
+        map.off("mousemove", onMove);
+        map.off("mouseup", onUp);
+        window.removeEventListener("keydown", onKey);
+        draft.remove();
+        map.dragging.enable();
+      };
+    }
+
+    const onClick = (e: L.LeafletMouseEvent) => {
+      pts.push(e.latlng);
+      draft.setLatLngs(pts);
+    };
+    const onDbl = () => finish("polygon");
+    map.on("click", onClick);
+    map.on("dblclick", onDbl);
+    return () => {
+      map.off("click", onClick);
+      map.off("dblclick", onDbl);
+      window.removeEventListener("keydown", onKey);
+      draft.remove();
+      map.dragging.enable();
+    };
+  }, [ws.drawMode]);
+
+  useEffect(() => {
     const map = mapRef.current;
     if (!map || !ws.selection) return;
-    const c = SNAPSHOT.districts[ws.selection.districtId]?.centroid;
-    if (c) map.panTo([c.lat, c.lon]);
+    if (ws.selection.kind === "district" && ws.selection.districtId) {
+      const c = SNAPSHOT.districts[ws.selection.districtId]?.centroid;
+      if (c) map.panTo([c.lat, c.lon]);
+    }
   }, [ws.selection]);
 
   return <div ref={wrapRef} style={{ height: "100%", width: "100%" }} />;

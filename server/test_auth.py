@@ -70,6 +70,22 @@ class SidecarAuthTests(unittest.TestCase):
         self.assertNotIn("CORS(app)", text)
         self.assertNotIn("flask_cors", text)
 
+    def test_ndvi_uses_polygon_30day_recipe(self) -> None:
+        with open(sidecar.__file__, encoding="utf-8") as fh:
+            text = fh.read()
+        self.assertNotIn("buffer(4000)", text)
+        self.assertNotIn("2023-06-01", text)
+        self.assertIn("FAO/GAUL/2015/level2", text)
+        self.assertIn("SCL", text)
+        self.assertIn("Siddharth Nagar", text)
+
+    def test_geocode_and_directions_and_ground_checks_require_auth(self) -> None:
+        sidecar.SIDECAR_TOKEN = "sidecar-secret"
+        for path in ("/v1/geocode", "/v1/directions", "/v1/ground-checks"):
+            res = self.client.post(path, json={})
+            self.assertEqual(res.status_code, 401, path)
+
+
 
 if __name__ == "__main__":
     unittest.main()

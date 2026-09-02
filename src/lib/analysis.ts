@@ -1,3 +1,4 @@
+import { lookupFromNdviSnapshot, NDVI_EE_SNAPSHOT, ndviSnapshotSourceNote } from "./ndviSnapshot";
 import type { NdviLookup } from "./types";
 
 export type AnalysisResponse = {
@@ -14,23 +15,39 @@ function analysisUrl(): string | null {
 
 /**
  * Honest NDVI lookup. Never invents a number.
- * Missing URL, timeout, non-OK payload, or payload without sources → gap.
+ * Missing sidecar URL → dated public EE snapshot (sourced values only).
+ * Timeout, non-OK payload, or payload without sources → gap.
  *
- * The public desk leaves VITE_ANALYSIS_URL empty, so this is always a gap.
+ * The public desk leaves VITE_ANALYSIS_URL empty and never calls the private sidecar.
  * A private operator may point a non-public build at the IAM/token-gated sidecar.
  * Never put a sidecar token or Maps JS key in the frontend bundle; never call a
  * CORS-open /v1/ndvi on the public internet.
  */
-export async function fetchNdvi(districts: { id: string; lat: number; lon: number }[]): Promise<AnalysisResponse> {
-  const base = analysisUrl();
-  if (!base) {
+export function ndviFromPublicSnapshot(requestedIds: string[]): AnalysisResponse {
+  const ndvi = lookupFromNdviSnapshot(requestedIds);
+  const result = finalizeNdviCoverage(requestedIds, ndvi);
+  if (!result.gap) return result;
+  const missing = requestedIds.filter((id) => ndvi[id] == null);
+  if (Object.keys(ndvi).length === 0) {
     return {
       ndvi: {},
       gap: {
-        reason:
-          "No analysis API configured. The public desk does not call Earth Engine. NDVI is a gap unless a private IAM/token-gated sidecar answers.",
+        reason: `No sourced NDVI in the dated EE snapshot (${ndviSnapshotSourceNote()}). Nothing was invented.`,
       },
     };
+  }
+  return {
+    ndvi: result.ndvi,
+    gap: {
+      reason: `Partial NDVI from dated EE snapshot (${NDVI_EE_SNAPSHOT.asOf}, Sentinel-2 ${NDVI_EE_SNAPSHOT.startDate}–${NDVI_EE_SNAPSHOT.endDate}). Sourced values shown for ${Object.keys(ndvi).length}/${requestedIds.length} requested districts. Missing ${missing.join(", ") || "none"} — not invented. Ranking does not include NDVI.`,
+    },
+  };
+}
+
+export async function fetchNdvi(districts: { id: string; lat: number; lon: number }[]): Promise<AnalysisResponse> {
+  const base = analysisUrl();
+  if (!base) {
+    return ndviFromPublicSnapshot(districts.map((d) => d.id));
   }
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 12000);

@@ -2,37 +2,39 @@
 
 A map that stops being a confident black box and becomes a checkable decision a human and an AI agent can both stand behind.
 
-**Preview (until GitHub Pages is enabled):** [raw.githack.com `/docs` snapshot](https://raw.githack.com/tayyab415/ground/cursor/ground-v1-refine-3ee2/docs/index.html) (one interstitial click, then the desk).
-
-**Live after Pages is on:** [https://tayyab415.github.io/ground/](https://tayyab415.github.io/ground/) — served from `/docs` (or repo root). GitHub Pages will not serve `/site`. Enable Pages: Settings → Pages → Deploy from a branch → `/docs`, or use the Actions deploy. Vite `BASE_PATH=/ground/` matches project Pages at that URL.
+**Live:** [https://tayyab415.github.io/ground/](https://tayyab415.github.io/ground/) — served from `/docs`. Vite `BASE_PATH=/ground/` matches project Pages at that URL.
 
 MIT license is [`LICENSE`](./LICENSE) at the repo root (also copied into [`docs/LICENSE`](./docs/LICENSE)).
 
 Codex on the left. Ground in the browser on the right. The agent drives the map through WebMCP (`document.modelContext.registerTool`). Same commands as the visible UI.
 
-This is not an OpenStreetMap clone. OSM tiles and public datasets are evidence. The product is the shared workspace: mission, candidates, layers, unsaved selection, corrections, decision record.
+This is not an OpenStreetMap clone. OSM tiles and public datasets are evidence. The product is the shared workspace: mission, candidates, layers, unsaved selection (including lasso/polygon), corrections, GroundCheck, decision record.
 
-See `PLAN.md` for the product shape. MIT license is in [`LICENSE`](./LICENSE).
+See `PLAN.md` for the product shape.
 
-## North-star loop (V1)
+## North-star loop
 
-No field network. No chatbot in this app.
+No in-app chatbot. No spawned Codex-army UI.
 
 1. Open the desk. Click **Start analysis** (or ask the agent to call `show_candidates`).
 2. Ranked eastern Uttar Pradesh rice-belt districts appear. Gorakhpur leads because of an **unverified year-round canal** prior — not because of a fake NDVI.
-3. Open Gorakhpur evidence (`open_evidence` / View details). The weak card is canal irrigation.
+3. Open Gorakhpur evidence (`open_evidence` / View details). Crop health shows a **dated Earth Engine snapshot** where we have it. Ambedkar Nagar NDVI is a gap (not invented). Flood is a gap. The weak card is still canal irrigation.
 4. Human: the canal is seasonal. Apply the correction (`apply_correction`) or preview it first (`preview_scenario`).
-5. Ranking moves, with before/after ranks. NDVI stays a **gap** unless a private IAM/token-gated Earth Engine sidecar actually answered.
-6. **Approve** (human only). **Share** / `export_decision` writes a JSON record with sources, corrections, gaps, and a SHA-256 hash.
+5. Ranking moves, with before/after ranks. NDVI stays out of the ranking while coverage is incomplete.
+6. **Send GroundCheck** (`send_ground_check`) for a real field photo + short answer + GPS + timestamp. The desk never invents a reply. If the store is down, the check is a gap.
+7. A field officer opens the mobile link, replies. Human **Approve evidence** (`approve_evidence`).
+8. **Approve** the decision (human only). **Share** / `export_decision` writes a JSON record with sources, corrections, GroundChecks, gaps, and a SHA-256 hash.
+
+Draw a **polygon** or **lasso** on the map. `get_current_selection` reads that unsaved geometry from this tab only — not a server roundtrip.
 
 ## WebMCP tools
 
-Registered on the page when the browser supports WebMCP. Each tool calls the same function as the UI control. Unsaved selection/corrections are readable only through WebMCP, not a REST API.
+Registered on the page when the browser supports WebMCP. Each tool calls the same function as the UI control. Unsaved selection/corrections/GroundChecks are readable only through WebMCP, not a REST API.
 
 | Tool | Role |
 | --- | --- |
 | `get_workspace_state` | Mission, candidates, layers, unsaved changes |
-| `get_current_selection` | Unsaved district/polygon in this tab |
+| `get_current_selection` | Unsaved district / polygon / lasso / point in this tab |
 | `get_visible_map_state` | Bounds, zoom, OSM tiles, layers |
 | `get_open_evidence` | Open evidence card |
 | `get_unsaved_changes` | Unsaved human selection and uncommitted corrections (this tab only) |
@@ -41,22 +43,25 @@ Registered on the page when the browser supports WebMCP. Each tool calls the sam
 | `highlight_uncertainty` | Mark unverified assumptions |
 | `preview_scenario` | Re-rank preview (not committed) |
 | `apply_correction` | Apply canal correction and re-rank (unsaved) |
+| `send_ground_check` | Create a field check (question + location + due date) |
+| `approve_evidence` | Mark a real field reply as verified |
 | `export_decision` | Decision record + hash |
 
-If `document.modelContext` is missing, the desk still works. The agent just cannot see the tab until a WebMCP-capable client (ChatGPT/Codex desktop, or Chrome with WebMCP) loads the page.
+If `document.modelContext` is missing, the desk still works. The agent just cannot see the tab until a WebMCP-capable client loads the page.
 
-## Honest sources (V1)
+## Honest sources
 
 | Layer | Source | If missing |
 | --- | --- | --- |
-| Basemap | OSM raster tiles (no Maps JS key) | Tile gap banner; polygons still work |
+| Basemap | OSM raster tiles (no Maps JS key). Roads toggle adds/removes those tiles. | Tile gap banner; polygons still work |
 | Districts | `udit-001/india-maps-data` UP GeoJSON | Pool is 12 eastern rice-belt districts, not all 75 |
 | Soil | ISRIC SoilGrids 2.0 point sample at centroid | Factor dropped, weights renormalized |
 | Elevation | Open-Meteo Elevation API (SRTM-based) | Factor dropped |
-| NDVI | Earth Engine Sentinel-2 via a **private** IAM/token-gated sidecar. Not on the public desk. | **Gap. No number is invented.** |
+| NDVI | Dated EE snapshot (`src/data/ndvi-ee-snapshot.json`): Sentinel-2 SR Harmonized + FAO/GAUL/2015/level2, 2026-07-29 to 2026-08-27, SCL 4-6 + QA60, 60 m, 64 scenes. Live EE is a **private** IAM/token-gated sidecar only. | **Ambedkar Nagar is a gap. Jaunpur was computed but is outside the V1 pool. No number is invented. Ranking drops NDVI while coverage is partial.** |
 | Mills | Places API (New) via that same private sidecar, else OSM Overpass | Gap in this snapshot (Overpass 504) |
 | Irrigation | Explicit model prior (challengeable) | The canal fact is the point of the product |
 | Flood | Not loaded | Gap; flood constraint is not enforced |
+| Geocode / directions | Sidecar ADC only | Public desk does not call them |
 
 Mockup scores from the visual spec are **not** used.
 
@@ -68,13 +73,13 @@ npm test
 npm run dev
 ```
 
-Optional analysis sidecar is **private** (token + Cloud Run IAM-only). Judges use the static desk; `VITE_ANALYSIS_URL` stays empty. See `server/README.md`. Do not publish `/v1/ndvi` or Places without auth. Do not CORS-open compute.
+Optional analysis sidecar is **private** (token + Cloud Run IAM-only). Judges use the static desk; `VITE_ANALYSIS_URL` stays empty. See `server/README.md`. Do not publish `/v1/ndvi`, Places, geocode, or directions without auth. Do not CORS-open compute. Do not mint Maps keys. Do not put the sidecar URL or token in the public Pages bundle.
 
-The committed static desk lives in `/docs` (`npm run snapshot:docs`). That is what githack and branch Pages serve. `npm run build` with `BASE_PATH=/ground/` is the Actions Pages artifact.
+The committed static desk lives in `/docs` (`npm run snapshot:docs`).
 
-## Out of scope (V1)
+## Out of scope
 
-GroundCheck mobile/SMS, spawned Codex army, click-automation A/B, OSM clone, in-app chatbot.
+In-app chatbot, spawned Codex army UI, minting a browser Maps key.
 
 ## License
 
