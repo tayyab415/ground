@@ -18,7 +18,9 @@ import {
   setDrawnSelection,
   show_candidates,
   submit_field_reply,
+  load_field_check,
 } from "./commands";
+import { fieldCaptureAllowed } from "./fieldStore";
 import { buildEvidence, rankDistricts, SNAPSHOT } from "./rank";
 import { emptyWorkspace, getState, patchState, replaceState } from "./store";
 import { WEBMCP_TOOLS } from "./webmcp";
@@ -469,6 +471,22 @@ describe("GroundCheck", () => {
     expect(sent.check?.reply).toBeNull();
     const denied = approveTool!.execute({ checkId: sent.check?.id }) as { ok: boolean };
     expect(denied.ok).toBe(false);
+  });
+
+  it("treats a missing same-browser store as a gap before any field capture", () => {
+    const sent = send_ground_check({ district: "gorakhpur", question: "Is the canal seasonal?" });
+    expect(sent.ok).toBe(true);
+    if (!sent.ok) throw new Error("expected send");
+    const here = fieldCaptureAllowed(sent.check.id);
+    expect(here.ok).toBe(true);
+    localStorage.clear();
+    replaceState(emptyWorkspace());
+    expect(load_field_check(sent.check.id)).toBeNull();
+    const otherDevice = fieldCaptureAllowed(sent.check.id);
+    expect(otherDevice.ok).toBe(false);
+    if (otherDevice.ok) throw new Error("expected gap");
+    expect(otherDevice.gap).toMatch(/another device/i);
+    expect(otherDevice.gap).toMatch(/not collected/i);
   });
 });
 

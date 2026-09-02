@@ -21,8 +21,8 @@ No in-app chatbot. No spawned Codex-army UI.
 3. Open Gorakhpur evidence (`open_evidence` / View details). Crop health shows a **dated Earth Engine snapshot** where we have it. Ambedkar Nagar NDVI is a gap (not invented). Flood is a gap. The weak card is still canal irrigation.
 4. Human: the canal is seasonal. Apply the correction (`apply_correction`) or preview it first (`preview_scenario`).
 5. Ranking moves, with before/after ranks. NDVI stays out of the ranking while coverage is incomplete.
-6. **Send GroundCheck** (`send_ground_check`) for a real field photo + short answer + GPS + timestamp. The desk never invents a reply. If the store is down, the check is a gap.
-7. A field officer opens the mobile link, replies. Human **Approve evidence** (`approve_evidence`).
+6. **Send GroundCheck** (`send_ground_check`) for a real field photo + short answer + GPS + timestamp. The desk never invents a reply. Same-browser localStorage can receive a reply. A mobile officer on another device is a **gap** unless a real shared store exists — we do not invent one. If the store is down, the check is a gap.
+7. Open the field link **in this browser**, reply. Human **Approve evidence** (`approve_evidence`).
 8. **Approve** the decision (human only). **Share** / `export_decision` writes a JSON record with sources, corrections, GroundChecks, gaps, and a SHA-256 hash.
 
 Draw a **polygon** or **lasso** on the map. `get_current_selection` reads that unsaved geometry from this tab only — not a server roundtrip.
@@ -62,6 +62,7 @@ If `document.modelContext` is missing, the desk still works. The agent just cann
 | Irrigation | Explicit model prior (challengeable) | The canal fact is the point of the product |
 | Flood | Not loaded | Gap; flood constraint is not enforced |
 | Geocode / directions | Sidecar ADC only | Public desk does not call them |
+| GroundCheck replies | Same-browser localStorage after a real field submit | Mobile officer on another device is a gap unless a real shared store exists. No store is invented. Photo/GPS are not collected without a store hit. |
 
 Mockup scores from the visual spec are **not** used.
 

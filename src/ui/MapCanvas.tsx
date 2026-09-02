@@ -176,11 +176,18 @@ export function MapCanvas() {
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
-    if (ws.drawMode === "idle") {
+    const restorePanZoom = () => {
       map.dragging.enable();
+      map.doubleClickZoom.enable();
+    };
+    if (ws.drawMode === "idle") {
+      restorePanZoom();
       return;
     }
     map.dragging.disable();
+    if (ws.drawMode === "polygon") map.doubleClickZoom.disable();
+    else map.doubleClickZoom.enable();
+
     const pts: L.LatLng[] = [];
     const draft = L.polyline([], { color: "#1d4ed8", weight: 2 }).addTo(map);
 
@@ -201,28 +208,35 @@ export function MapCanvas() {
     window.addEventListener("keydown", onKey);
 
     if (ws.drawMode === "lasso") {
+      let drawing = false;
+      let settled = false;
       const onDown = (e: L.LeafletMouseEvent) => {
+        drawing = true;
         pts.push(e.latlng);
         draft.setLatLngs(pts);
       };
       const onMove = (e: L.LeafletMouseEvent) => {
-        if ((e.originalEvent as MouseEvent).buttons !== 1 && pts.length === 0) return;
-        if ((e.originalEvent as MouseEvent).buttons === 1) {
-          pts.push(e.latlng);
-          draft.setLatLngs(pts);
-        }
+        if (!drawing) return;
+        pts.push(e.latlng);
+        draft.setLatLngs(pts);
       };
-      const onUp = () => finish("lasso");
+      const onPointerUp = () => {
+        if (!drawing || settled) return;
+        settled = true;
+        finish("lasso");
+      };
       map.on("mousedown", onDown);
       map.on("mousemove", onMove);
-      map.on("mouseup", onUp);
+      window.addEventListener("pointerup", onPointerUp);
+      window.addEventListener("mouseup", onPointerUp);
       return () => {
         map.off("mousedown", onDown);
         map.off("mousemove", onMove);
-        map.off("mouseup", onUp);
+        window.removeEventListener("pointerup", onPointerUp);
+        window.removeEventListener("mouseup", onPointerUp);
         window.removeEventListener("keydown", onKey);
         draft.remove();
-        map.dragging.enable();
+        restorePanZoom();
       };
     }
 
@@ -230,7 +244,10 @@ export function MapCanvas() {
       pts.push(e.latlng);
       draft.setLatLngs(pts);
     };
-    const onDbl = () => finish("polygon");
+    const onDbl = (e: L.LeafletMouseEvent) => {
+      L.DomEvent.stop(e);
+      finish("polygon");
+    };
     map.on("click", onClick);
     map.on("dblclick", onDbl);
     return () => {
@@ -238,7 +255,7 @@ export function MapCanvas() {
       map.off("dblclick", onDbl);
       window.removeEventListener("keydown", onKey);
       draft.remove();
-      map.dragging.enable();
+      restorePanZoom();
     };
   }, [ws.drawMode]);
 

@@ -18,7 +18,7 @@ import json
 import os
 import secrets
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
 from flask import Flask, jsonify, request
@@ -116,6 +116,11 @@ GAUL_ADM2 = {
 }
 
 
+def ee_filter_end_exclusive(inclusive_end: date) -> date:
+    """Earth Engine filterDate end is exclusive. +1 day keeps as-of-day scenes."""
+    return inclusive_end + timedelta(days=1)
+
+
 def _adc_request(url: str, body: dict[str, Any], headers: dict[str, str], timeout: int = 12) -> dict[str, Any]:
     import google.auth
     import google.auth.transport.requests
@@ -170,6 +175,7 @@ def ndvi():
             else (end - timedelta(days=29))
         )
         start_s, end_s = start.isoformat(), end.isoformat()
+        end_exclusive = ee_filter_end_exclusive(end).isoformat()
         ids = [str(d.get("id") or "") for d in districts if d.get("id")]
         gaul_names = []
         id_by_gaul: dict[str, str] = {}
@@ -204,7 +210,7 @@ def ndvi():
         col = (
             ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
             .filterBounds(gaul.geometry())
-            .filterDate(start_s, end_s)
+            .filterDate(start_s, end_exclusive)
             .map(mask_ndvi)
         )
         n_scenes = int(col.size().getInfo() or 0)
