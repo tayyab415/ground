@@ -26,8 +26,9 @@ export function GroundChecks({
     <div className="groundchecks">
       <div className="kicker">GroundCheck</div>
       <p className="note">
-        One question, one location. A field officer replies with a photo, a short answer, GPS, and a
-        timestamp. Replies are never invented.
+        One question, one location. Open the field page in this browser to reply with a photo,
+        short answer, GPS, and timestamp. A mobile officer on another device is a gap unless a
+        real shared store exists. Replies are never invented.
       </p>
       {districtId ? (
         <button
@@ -65,7 +66,10 @@ export function GroundChecks({
               </div>
             </div>
           ) : (
-            <p className="note">Awaiting a real reply. Open the field link — the desk will not fake one.</p>
+            <p className="note">
+              Awaiting a real reply in this browser. Another device is a gap — the desk will not fake
+              one.
+            </p>
           )}
           <div className="top-actions" style={{ marginTop: 8 }}>
             <a className="linkish" href={c.fieldPath} target="_blank" rel="noreferrer">

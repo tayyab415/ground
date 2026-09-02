@@ -79,6 +79,19 @@ class SidecarAuthTests(unittest.TestCase):
         self.assertIn("SCL", text)
         self.assertIn("Siddharth Nagar", text)
 
+    def test_ee_filter_date_end_is_exclusive_plus_one_day(self) -> None:
+        from datetime import date
+
+        self.assertEqual(
+            sidecar.ee_filter_end_exclusive(date(2026, 8, 27)).isoformat(),
+            "2026-08-28",
+        )
+        with open(sidecar.__file__, encoding="utf-8") as fh:
+            text = fh.read()
+        self.assertIn("filterDate(start_s, end_exclusive)", text)
+        self.assertIn('"endDate": end_s', text)
+        self.assertNotIn("filterDate(start_s, end_s)", text)
+
     def test_geocode_and_directions_and_ground_checks_require_auth(self) -> None:
         sidecar.SIDECAR_TOKEN = "sidecar-secret"
         for path in ("/v1/geocode", "/v1/directions", "/v1/ground-checks"):

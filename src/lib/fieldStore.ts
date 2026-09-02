@@ -73,3 +73,18 @@ export function writeStoredReply(
 export function findStoredCheck(checkId: string): GroundCheck | null {
   return readStoredChecks().find((c) => c.id === checkId) ?? null;
 }
+
+export const FIELD_STORE_GAP =
+  "No GroundCheck store in this browser for that id. Same-tab localStorage can receive a reply. A mobile officer on another device is a gap unless a real shared store exists. Photo and GPS were not collected. No reply was invented.";
+
+/** Same-browser store only. Do not treat URL query params as a reply store. */
+export function fieldCaptureAllowed(
+  checkId: string,
+): { ok: true; check: GroundCheck } | { ok: false; gap: string } {
+  if (!checkId) {
+    return { ok: false, gap: "No check id in this link. Nothing was invented." };
+  }
+  const check = findStoredCheck(checkId);
+  if (!check) return { ok: false, gap: FIELD_STORE_GAP };
+  return { ok: true, check };
+}

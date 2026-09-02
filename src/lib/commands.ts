@@ -657,7 +657,7 @@ export function send_ground_check(input: {
     status: "gap",
     fieldPath: "",
     deliveryGap:
-      "Field-reply store is this browser only. The public desk does not call the private sidecar. If this browser store is unavailable, the check is a gap — no reply is invented.",
+      "Field-reply store is this browser only. The public desk does not call the private sidecar and does not invent a shared store. A mobile officer on another device is a gap. If this browser store is unavailable, the check is a gap — no reply is invented.",
     reply: null,
   };
   check.fieldPath = fieldPathFor(check);
@@ -673,7 +673,7 @@ export function send_ground_check(input: {
   pushTimeline(
     "send_ground_check",
     stored.ok
-      ? `GroundCheck sent for ${rec.name}. Field link is in this tab. Waiting for a real reply — none was invented.`
+      ? `GroundCheck sent for ${rec.name}. Field link works in this browser store. Waiting for a real reply — none was invented.`
       : `GroundCheck for ${rec.name} is a gap: ${check.deliveryGap}`,
   );
   return {
@@ -681,7 +681,7 @@ export function send_ground_check(input: {
     check,
     fieldPath: check.fieldPath,
     note: stored.ok
-      ? "Open the field link on a phone or this browser. A reply appears only after someone actually submits photo + answer."
+      ? "Open the field link in this browser. A mobile officer on another device is a gap unless a real shared store exists. A reply appears only after someone actually submits photo + answer."
       : `Store gap: ${check.deliveryGap}`,
   };
 }

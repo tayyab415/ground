@@ -1,21 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
-import { load_field_check, submit_field_reply } from "../lib/commands";
-import { findStoredCheck } from "../lib/fieldStore";
+import { submit_field_reply } from "../lib/commands";
+import { fieldCaptureAllowed } from "../lib/fieldStore";
 
 function readQuery(): {
   checkId: string;
   question: string;
   districtId: string;
-  lat: string;
-  lon: string;
 } {
   const q = new URLSearchParams(window.location.search);
   return {
     checkId: q.get("field") ?? "",
     question: q.get("q") ?? "",
     districtId: q.get("d") ?? "",
-    lat: q.get("lat") ?? "",
-    lon: q.get("lon") ?? "",
   };
 }
 
@@ -48,9 +44,8 @@ async function fileToJpegDataUrl(file: File): Promise<string> {
 
 export function FieldReply() {
   const query = useMemo(readQuery, []);
-  const stored = query.checkId ? load_field_check(query.checkId) ?? findStoredCheck(query.checkId) : null;
-  const question = stored?.question || query.question;
-  const districtName = stored?.districtName || query.districtId || "Unknown location";
+  const capture = useMemo(() => fieldCaptureAllowed(query.checkId), [query.checkId]);
+  const stored = capture.ok ? capture.check : null;
   const [answer, setAnswer] = useState("");
   const [photo, setPhoto] = useState<string | null>(null);
   const [gps, setGps] = useState<{ lat: number; lon: number; accuracyM?: number } | null>(null);
@@ -60,6 +55,7 @@ export function FieldReply() {
   const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!stored) return;
     if (!navigator.geolocation) {
       setGpsGap("Geolocation is not available on this device. GPS is a gap.");
       return;
@@ -79,7 +75,7 @@ export function FieldReply() {
       },
       { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 },
     );
-  }, []);
+  }, [stored?.id]);
 
   if (!query.checkId) {
     return (
@@ -90,14 +86,17 @@ export function FieldReply() {
     );
   }
 
-  if (!question && !stored) {
+  if (!capture.ok || !stored) {
     return (
       <div className="field-page">
         <h1>GroundCheck</h1>
-        <p className="gapbox">
-          This field link has no question and the reply store is unavailable. The desk will show a gap.
-          GroundCheck does not invent a field reply.
-        </p>
+        <p className="gapbox">{capture.ok ? "No GroundCheck store in this browser for that id." : capture.gap}</p>
+        {query.question ? (
+          <p className="note">
+            Question in the link (not collected): {query.question}
+            {query.districtId ? ` · ${query.districtId}` : ""}
+          </p>
+        ) : null}
       </div>
     );
   }
@@ -105,9 +104,13 @@ export function FieldReply() {
   return (
     <div className="field-page">
       <div className="kicker">GroundCheck · field</div>
-      <h1>{districtName}</h1>
-      <p className="mission-copy">{question || stored?.question}</p>
-      <p className="note">Photo, short answer, GPS, timestamp. No account. The desk never fakes this reply.</p>
+      <h1>{stored.districtName}</h1>
+      <p className="mission-copy">{stored.question}</p>
+      <p className="note">
+        Photo, short answer, GPS, timestamp. No account. This browser store can deliver the reply to
+        the desk. Another device is a gap unless a real shared store exists. The desk never fakes this
+        reply.
+      </p>
 
       <label className="field-label">
         Photo
