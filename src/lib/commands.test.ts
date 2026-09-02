@@ -266,4 +266,54 @@ describe("workspace commands", () => {
     expect(g?.evidence.find((e) => e.id === "irrigation")?.status).toBe("unverified");
     expect(g?.evidence.find((e) => e.id === "irrigation")?.value).toBe("perennial_canal_assumed");
   });
+
+  it("commit_preview on a mixed correction+scenario preview commits the preview ranking", async () => {
+    await show_candidates();
+    const preview = preview_scenario({
+      district: "gorakhpur",
+      fact: "canal_irrigation",
+      value: "seasonal",
+      scenario: "low_risk",
+    });
+    expect(preview.ok).toBe(true);
+    if (!("preview" in preview) || !preview.preview) throw new Error("expected preview");
+    expect(preview.preview.correction?.to).toBe("seasonal_canal");
+    expect(preview.preview.scenario).toBe("low_risk");
+    expect(preview.preview.whatChanged.join(" ")).toMatch(/Irrigation/);
+    expect(preview.preview.whatChanged.join(" ")).toMatch(/low_risk/);
+    const expected = preview.preview.after.map((r) => ({
+      districtId: r.districtId,
+      rank: r.rank,
+      score: r.score,
+    }));
+    const correctionOnly = rankDistricts({
+      corrections: [
+        {
+          id: "only-corr",
+          districtId: "gorakhpur",
+          fact: "canal_irrigation",
+          from: "perennial_canal_assumed",
+          to: "seasonal_canal",
+          note: "",
+          appliedAt: new Date().toISOString(),
+          committed: false,
+        },
+      ],
+      scenario: "base",
+    }).candidates.map((c) => ({ districtId: c.districtId, rank: c.rank, score: c.score }));
+    expect(expected).not.toEqual(correctionOnly);
+
+    const committed = commit_preview();
+    expect(committed.ok).toBe(true);
+    expect(getState().scenario).toBe("low_risk");
+    const corrections = get_workspace_state().unsavedChanges.corrections;
+    expect(corrections).toHaveLength(1);
+    expect(corrections[0]?.to).toBe("seasonal_canal");
+    const live = getState().candidates.map((c) => ({
+      districtId: c.districtId,
+      rank: c.rank,
+      score: c.score,
+    }));
+    expect(live).toEqual(expected);
+  });
 });
