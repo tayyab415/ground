@@ -210,14 +210,20 @@ export const WEBMCP_TOOLS: ToolSpec[] = [
     inputSchema: {
       type: "object",
       properties: {
-        checkId: { type: "string", description: "GroundCheck id. If supplied and unknown, error — no fallback. Omit to approve the latest replied check in this tab." },
+        checkId: {
+          type: "string",
+          description:
+            "GroundCheck id. If supplied (including whitespace-only), missing/empty is an error — no fallback. Omit to approve the latest replied check in this tab or its same-tab localStorage store.",
+        },
       },
       additionalProperties: false,
     },
-    execute: (input) =>
-      approve_evidence({
-        checkId: input.checkId ? String(input.checkId) : undefined,
-      }),
+    execute: (input) => {
+      if (!("checkId" in input) || input.checkId === undefined || input.checkId === null) {
+        return approve_evidence({});
+      }
+      return approve_evidence({ checkId: String(input.checkId) });
+    },
   },
 ];
 
