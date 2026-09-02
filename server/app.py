@@ -3,7 +3,8 @@
 V1 judges use the static OSM desk. This process is NOT a public deploy.
 
 Auth (both required in spirit; either is enough to reject anonymous compute):
-  - GROUND_SIDECAR_TOKEN: Authorization: Bearer <token> or X-Ground-Token
+  - GROUND_SIDECAR_TOKEN: prefer X-Ground-Token; also accept Authorization Bearer
+    if it is the sidecar token. Cloud Run IAM Bearer must not hide X-Ground-Token.
   - Cloud Run: deploy with --no-allow-unauthenticated (IAM-only)
 
 If GROUND_SIDECAR_TOKEN is unset, /v1/ndvi and /v1/places/rice-mills always 401.
@@ -44,11 +45,29 @@ def init_ee() -> None:
 init_ee()
 
 
-def _presented_token() -> str:
-    auth = request.headers.get("Authorization", "")
+def _header_tokens() -> list[str]:
+    """Collect sidecar-token candidates. Prefer X-Ground-Token.
+
+    Cloud Run IAM uses Authorization: Bearer <identity token>. That must not
+    hide a valid X-Ground-Token. The sidecar secret is accepted from either
+    header so clients can send Bearer <GROUND_SIDECAR_TOKEN> without IAM.
+    """
+    tokens: list[str] = []
+    xt = request.headers.get("X-Ground-Token", "").strip()
+    if xt:
+        tokens.append(xt)
+    auth = request.headers.get("Authorization", "").strip()
     if auth.lower().startswith("bearer "):
-        return auth[7:].strip()
-    return request.headers.get("X-Ground-Token", "").strip()
+        bearer = auth[7:].strip()
+        if bearer and bearer not in tokens:
+            tokens.append(bearer)
+    return tokens
+
+
+def _matches_sidecar_token(presented: str, expected: str) -> bool:
+    if not presented or not expected or len(presented) != len(expected):
+        return False
+    return secrets.compare_digest(presented, expected)
 
 
 def require_sidecar_auth():
@@ -62,8 +81,7 @@ def require_sidecar_auth():
             ),
             401,
         )
-    presented = _presented_token()
-    if not presented or not secrets.compare_digest(presented, SIDECAR_TOKEN):
+    if not any(_matches_sidecar_token(t, SIDECAR_TOKEN) for t in _header_tokens()):
         return (
             jsonify(
                 status="gap",

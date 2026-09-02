@@ -8,7 +8,9 @@ Do not put `/v1/ndvi` or `/v1/places/rice-mills` on the public internet.
 Compute routes reject unauthenticated requests.
 
 1. **Token (required by the app):** set `GROUND_SIDECAR_TOKEN` and send
-   `Authorization: Bearer <token>` or `X-Ground-Token: <token>`.
+   `X-Ground-Token: <token>` (preferred) or `Authorization: Bearer <token>`.
+   Cloud Run IAM also uses `Authorization: Bearer`; the sidecar prefers
+   `X-Ground-Token` so an identity token cannot hide a valid sidecar secret.
    If the env var is empty, those routes always return 401.
 2. **Cloud Run IAM-only:** deploy with `--no-allow-unauthenticated`. Never
    `--allow-unauthenticated`.

@@ -207,9 +207,16 @@ export function preview_scenario(input: {
     ndvi: s.ndvi,
     scenario,
   });
+  const whatChanged: string[] = [];
+  if (staged) whatChanged.push(`Irrigation (${districtId}): ${staged.from} → ${staged.to}`);
+  if (!staged || scenario !== s.scenario) whatChanged.push(`Scenario → ${scenario}`);
+  const canalLabel =
+    staged?.to === "seasonal_canal" ? "Seasonal canal" : staged ? "Year-round canal" : null;
   const preview = {
-    label: staged
-      ? `${staged.to === "seasonal_canal" ? "Seasonal canal" : "Year-round canal"} (preview, not applied)`
+    label: canalLabel
+      ? scenario !== s.scenario
+        ? `${canalLabel} + ${scenario} (preview, not applied)`
+        : `${canalLabel} (preview, not applied)`
       : `Scenario ${scenario} (preview)`,
     scenario,
     correction: staged,
@@ -219,9 +226,7 @@ export function preview_scenario(input: {
       rank: c.rank,
       score: c.score,
     })),
-    whatChanged: staged
-      ? [`Irrigation (${districtId}): ${staged.from} → ${staged.to}`]
-      : [`Scenario → ${scenario}`],
+    whatChanged,
   };
   patchState({ scenarioPreview: preview, view: "desk" });
   pushTimeline("preview_scenario", preview.label);
@@ -233,6 +238,7 @@ export function apply_correction(input: {
   fact?: "canal_irrigation";
   value?: "seasonal" | "year-round";
   note?: string;
+  scenario?: ScenarioId;
 } = {}) {
   const s = getState();
   let districtId: string | undefined;
@@ -253,6 +259,7 @@ export function apply_correction(input: {
   if (from === to) {
     return { ok: false, error: `Irrigation class is already ${to}. Correction would be a no-op.` };
   }
+  const scenario = input.scenario ?? s.scenario;
   const correction: Correction = {
     id: `corr-${Date.now()}`,
     districtId,
@@ -268,12 +275,13 @@ export function apply_correction(input: {
   const ranked = rankDistricts({
     corrections: [...getState().corrections],
     ndvi: s.ndvi,
-    scenario: s.scenario,
+    scenario,
   });
   const candidates = attachRankDelta(previous, ranked.candidates);
   patchState({
     candidates,
     rankingMeta: ranked.meta,
+    scenario,
     scenarioPreview: null,
     approval: null,
     openEvidenceDistrictId: districtId,
@@ -428,6 +436,7 @@ export function commit_preview() {
   const preview = getState().scenarioPreview;
   if (!preview) return { ok: false as const, error: "No preview open." };
   const corr = preview.correction;
+  const scenario = preview.scenario;
   if (corr) {
     const value = valueFromIrrigationClass(corr.to);
     if (!value) {
@@ -437,10 +446,11 @@ export function commit_preview() {
       district: corr.districtId,
       value,
       note: corr.note,
+      scenario,
     });
   }
-  if (preview.scenario !== getState().scenario) {
-    chooseScenario(preview.scenario);
+  if (scenario !== getState().scenario) {
+    chooseScenario(scenario);
   }
   closePreview();
   return { ok: true as const, applied: "scenario" as const };

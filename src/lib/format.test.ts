@@ -52,8 +52,10 @@ describe("sidecar is private", () => {
   it("rejects unauthenticated compute and does not CORS-open the app", () => {
     const src = readFileSync(resolve("server/app.py"), "utf8");
     expect(src).not.toMatch(/CORS\(\s*app\s*\)/);
+    expect(src).not.toMatch(/flask_cors|flask-cors/);
     expect(src).toMatch(/GROUND_SIDECAR_TOKEN/);
     expect(src).toMatch(/require_sidecar_auth/);
+    expect(src).toMatch(/X-Ground-Token/);
     expect(src).toMatch(/401/);
   });
 });
