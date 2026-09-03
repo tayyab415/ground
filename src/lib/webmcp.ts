@@ -205,6 +205,7 @@ function hasNegatedPhrase(text: string, phrase: string): boolean {
  * (`not seasonal; perennial`) and trailing short denials (`seasonal? no, perennial`)
  * are year-round. Unclassified mixed prose returns undefined so the host
  * wrapper can reject before apply_correction defaults to seasonal.
+ * Doubly denied prose (`seasonal? no, not year-round`) stays unclassified.
  */
 export function canalValueFrom(input: Record<string, unknown>): "seasonal" | "year-round" | undefined {
   const raw = stringField(input, "value", "irrigation", "canal", "to");
@@ -225,15 +226,15 @@ export function canalValueFrom(input: Record<string, unknown>): "seasonal" | "ye
     hasPositivePhrase(n, "perennial") ||
     hasPositivePhrase(n, "year round") ||
     hasPositivePhrase(n, "yearround");
+  const seasonalDenied = hasNegatedPhrase(n, "seasonal");
+  const yearRoundDenied =
+    hasNegatedPhrase(n, "perennial") ||
+    hasNegatedPhrase(n, "year round") ||
+    hasNegatedPhrase(n, "yearround");
   if (yearRound && !seasonal) return "year-round";
   if (seasonal && !yearRound) return "seasonal";
-  if (!seasonal && hasNegatedPhrase(n, "seasonal")) return "year-round";
-  if (
-    !yearRound &&
-    (hasNegatedPhrase(n, "perennial") || hasNegatedPhrase(n, "year round") || hasNegatedPhrase(n, "yearround"))
-  ) {
-    return "seasonal";
-  }
+  if (!seasonal && seasonalDenied && !yearRoundDenied && !yearRound) return "year-round";
+  if (!yearRound && yearRoundDenied && !seasonalDenied && !seasonal) return "seasonal";
   return undefined;
 }
 
