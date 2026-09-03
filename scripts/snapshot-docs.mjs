@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
- * Copy the Vite dist into /docs for GitHub Pages (branch source: /docs)
- * and githack preview. Preserves docs/mockups and docs/verify.
- * Removes leftover hashed assets that dist no longer produces.
- * GitHub Pages will not serve /site.
+ * Copy Vite dist into /docs for a committed preview (githack, local static
+ * files). Preserves docs/mockups and docs/verify. Removes leftover hashed
+ * assets that dist no longer produces.
+ * The live site is the Actions-built dist, not this folder.
  */
 import { cp, mkdir, readdir, rm } from "node:fs/promises";
 import { resolve } from "node:path";

@@ -2,7 +2,7 @@
 
 A map that stops being a confident black box and becomes a checkable decision a human and an AI agent can both stand behind.
 
-**Live:** [https://tayyab415.github.io/ground/](https://tayyab415.github.io/ground/) — served from `/docs`. Vite `BASE_PATH=/ground/` matches project Pages at that URL.
+**Live:** [https://tayyab415.github.io/ground/](https://tayyab415.github.io/ground/). Every push to `main` runs tests, builds with `BASE_PATH=/ground/`, and deploys that `dist` to GitHub Pages. You do not commit `/docs` to update the public URL.
 
 MIT license is [`LICENSE`](./LICENSE) at the repo root (also copied into [`docs/LICENSE`](./docs/LICENSE)).
 
@@ -91,7 +91,7 @@ The browser then calls `/v1/ndvi` with the operator's own Google identity (add
 `roles/run.invoker` to the service for that account). No token ever ships in the bundle.
 The Pages build stays on the dated EE snapshot so the public desk never depends on private auth.
 
-The committed static desk lives in `/docs` (`npm run snapshot:docs`).
+`npm run snapshot:docs` copies `dist` into `/docs` for a committed preview (githack, local static files). Pages does not serve that folder.
 
 ## Out of scope
 
