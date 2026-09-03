@@ -725,15 +725,28 @@ export function approve_evidence(input: { checkId?: string } = {}) {
   return finishApprove(check);
 }
 
+function replyReceivedMs(check: GroundCheck): number {
+  const at = check.reply?.receivedAt;
+  if (!at) return 0;
+  const ms = Date.parse(at);
+  return Number.isFinite(ms) ? ms : 0;
+}
+
 function latestRepliedCheck(): GroundCheck | null {
-  const pools = [getState().groundChecks, readStoredChecks()];
-  for (const pool of pools) {
-    const replied = pool.filter((c) => c.reply && c.status === "replied").at(-1);
-    if (replied) return replied;
-    const anyReply = pool.filter((c) => c.reply).at(-1);
-    if (anyReply) return anyReply;
+  const byId = new Map<string, GroundCheck>();
+  for (const check of [...getState().groundChecks, ...readStoredChecks()]) {
+    const prev = byId.get(check.id);
+    if (!prev || replyReceivedMs(check) >= replyReceivedMs(prev)) {
+      byId.set(check.id, check);
+    }
   }
-  return null;
+  const withReply = [...byId.values()].filter((c) => c.reply);
+  const preferred = withReply.filter((c) => c.status === "replied");
+  const pool = preferred.length > 0 ? preferred : withReply;
+  if (pool.length === 0) return null;
+  return pool.reduce((best, check) =>
+    replyReceivedMs(check) >= replyReceivedMs(best) ? check : best,
+  );
 }
 
 function finishApprove(check: GroundCheck) {

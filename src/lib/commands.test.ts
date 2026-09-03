@@ -20,7 +20,7 @@ import {
   submit_field_reply,
   load_field_check,
 } from "./commands";
-import { fieldCaptureAllowed } from "./fieldStore";
+import { fieldCaptureAllowed, writeStoredCheck } from "./fieldStore";
 import { buildEvidence, rankDistricts, SNAPSHOT } from "./rank";
 import { emptyWorkspace, getState, patchState, replaceState } from "./store";
 import { WEBMCP_TOOLS } from "./webmcp";
@@ -503,6 +503,54 @@ describe("GroundCheck", () => {
     expect(fallback.ok).toBe(true);
     if (!fallback.ok) throw new Error("expected fallback approve");
     expect(fallback.check.id).toBe(live.check.id);
+  });
+
+  it("approve_evidence with no checkId picks the later reply.receivedAt across desk and store", () => {
+    const deskOlder = send_ground_check({ district: "gorakhpur", question: "Older desk canal?" });
+    const storeNewer = send_ground_check({ district: "ballia", question: "Newer store canal?" });
+    expect(deskOlder.ok && storeNewer.ok).toBe(true);
+    if (!deskOlder.ok || !storeNewer.ok) throw new Error("expected two sends");
+    const olderReply = submit_field_reply({
+      checkId: deskOlder.check.id,
+      answer: "Older desk photo of the canal.",
+      photoDataUrl: "data:image/jpeg;base64,/9j/aaaa",
+      gps: { lat: 26.76, lon: 83.37, accuracyM: 12 },
+      capturedAt: "2026-08-01T10:00:00Z",
+    });
+    const newerReply = submit_field_reply({
+      checkId: storeNewer.check.id,
+      answer: "Newer store photo of the mill road.",
+      photoDataUrl: "data:image/jpeg;base64,/9j/aaaa",
+      gps: { lat: 25.76, lon: 84.15, accuracyM: 8 },
+      capturedAt: "2026-08-27T12:00:00Z",
+    });
+    expect(olderReply.ok && newerReply.ok).toBe(true);
+    if (!olderReply.ok || !newerReply.ok) throw new Error("expected two replies");
+    if (!olderReply.check.reply || !newerReply.check.reply) {
+      throw new Error("expected real replies");
+    }
+    const olderOnDesk = {
+      ...olderReply.check,
+      reply: { ...olderReply.check.reply, receivedAt: "2026-08-01T08:00:00.000Z" },
+    };
+    const newerInStore = {
+      ...newerReply.check,
+      reply: { ...newerReply.check.reply, receivedAt: "2026-08-27T14:00:00.000Z" },
+    };
+    writeStoredCheck(olderOnDesk);
+    writeStoredCheck(newerInStore);
+    patchState({ groundChecks: [olderOnDesk] });
+    const approved = approve_evidence();
+    expect(approved.ok).toBe(true);
+    if (!approved.ok) throw new Error("expected approve store-newer");
+    expect(approved.check.id).toBe(storeNewer.check.id);
+    expect(approved.check.status).toBe("approved");
+    expect(getState().groundChecks.find((c) => c.id === storeNewer.check.id)?.status).toBe(
+      "approved",
+    );
+    expect(getState().groundChecks.find((c) => c.id === deskOlder.check.id)?.status).not.toBe(
+      "approved",
+    );
   });
 
   it("does not treat whitespace-only checkId as omitted fallback", () => {
