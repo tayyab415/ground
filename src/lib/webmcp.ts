@@ -3,6 +3,7 @@ import {
   approve_evidence,
   export_decision,
   get_current_selection,
+  get_ground_checks,
   get_open_evidence,
   get_unsaved_changes,
   get_visible_map_state,
@@ -11,10 +12,11 @@ import {
   open_evidence,
   preview_scenario,
   send_ground_check,
+  set_region,
   show_candidates,
 } from "./commands";
 import { lookupDistrictId } from "./rank";
-import { notifyListeners, patchState } from "./store";
+import { getState, notifyListeners, patchState } from "./store";
 import type { ScenarioId } from "./types";
 
 type ToolExecuteOptions = { signal?: AbortSignal };
@@ -321,6 +323,11 @@ const runners: Record<string, ToolRunner> = {
     }
     return approve_evidence({ checkId: String(input.checkId) });
   },
+  set_region: (input) => {
+    const region = input.region === undefined || input.region === null ? undefined : String(input.region);
+    return set_region({ region });
+  },
+  get_ground_checks: () => get_ground_checks(),
 };
 
 /**
@@ -471,6 +478,19 @@ export const WEBMCP_TOOLS: ToolSpec[] = [
     execute: hostExecute("apply_correction"),
   },
   {
+    name: "set_region",
+    description:
+      "Switch the workspace to another supported region (up, maharashtra, us). Resets ranking, corrections, ground checks, draw mode, and timeline. Call show_candidates to rank this region.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        region: { type: "string", enum: ["up", "maharashtra", "us"], description: "Region id." },
+      },
+      required: ["region"],
+    },
+    execute: hostExecute("set_region"),
+  },
+  {
     name: "export_decision",
     description:
       "Generate the decision record (mission, ranking history, sources, corrections, gaps, reproducibility hash) and download JSON. Same as Share/export in the UI.",
@@ -481,6 +501,14 @@ export const WEBMCP_TOOLS: ToolSpec[] = [
       },
     },
     execute: hostExecute("export_decision"),
+  },
+  {
+    name: "get_ground_checks",
+    description:
+      "Read GroundChecks and their field replies in this tab. Replies are real (photo + answer) or absent — never invented. Approved replies mark verified field evidence.",
+    inputSchema: emptyObject,
+    annotations: { readOnlyHint: true },
+    execute: hostExecute("get_ground_checks"),
   },
   {
     name: "send_ground_check",
@@ -499,7 +527,7 @@ export const WEBMCP_TOOLS: ToolSpec[] = [
   {
     name: "approve_evidence",
     description:
-      "Mark a field GroundCheck reply as verified evidence. Same as Approve evidence in the UI. Fails if no real reply exists — never fakes a field photo, GPS, or answer.",
+      "Mark a field GroundCheck reply as verified evidence. Reads the officer's answer and, when the reply contradicts the current irrigation assumption, applies the resulting correction and re-ranks. Same as Approve evidence in the UI. Fails if no real reply exists — never fakes a field photo, GPS, or answer.",
     inputSchema: {
       type: "object",
       properties: {
@@ -554,5 +582,59 @@ export async function registerWebMcpTools(): Promise<{ registered: boolean; reas
     const reason = err instanceof Error ? err.message : "registerTool failed";
     patchState({ webmcp: { registered: false, reason } });
     return { registered: false, reason, names };
+  }
+}
+
+let registerTimer: ReturnType<typeof setInterval> | null = null;
+const REGISTER_RETRY_MS = 1200;
+const REGISTER_MAX_TRIES = 60; // ~72s of retries before giving up
+
+/**
+ * The WebMCP client in Chrome/ChatGPT/Codex injects document.modelContext
+ * asynchronously, usually after the app has already mounted and missed it.
+ * Poll until it appears (or a hard cap), then register exactly once.
+ * If a second client appears later, it re-registers over the same tool names.
+ */
+export async function startWebMcpAutoRegister(): Promise<void> {
+  let tries = 0;
+  if (registerTimer) {
+    clearInterval(registerTimer);
+    registerTimer = null;
+  }
+  const attempt = async () => {
+    const s = getState();
+    const bridge = modelContext();
+    if (bridge && typeof bridge.registerTool === "function") {
+      if (!s.webmcp.registered) {
+        await registerWebMcpTools();
+      }
+      return;
+    }
+    tries += 1;
+    if (tries === 1 || tries % 10 === 0) {
+      patchState({
+        webmcp: {
+          registered: false,
+          reason: `Waiting for the WebMCP client to attach (check ${tries}/...). Enable WebMCP in this browser tab, or reload with it active.`,
+        },
+      });
+    }
+  };
+  await attempt();
+  if (!registerTimer) {
+    registerTimer = setInterval(() => void attempt(), REGISTER_RETRY_MS);
+  }
+  setTimeout(() => {
+    if (registerTimer) {
+      clearInterval(registerTimer);
+      registerTimer = null;
+    }
+  }, REGISTER_RETRY_MS * REGISTER_MAX_TRIES);
+}
+
+export function stopWebMcpAutoRegister() {
+  if (registerTimer) {
+    clearInterval(registerTimer);
+    registerTimer = null;
   }
 }

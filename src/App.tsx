@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import {
   apply_correction,
   approveDecision,
+  set_region,
   cancelDraw,
   chooseScenario,
   closeDecision,
@@ -21,7 +22,9 @@ import {
 import { averageMetrics, choroplethLabel, choroplethMode, rankColor, statusLabel, weakCard } from "./lib/format";
 import type { LayerId, ScenarioId } from "./lib/types";
 import { useWorkspace } from "./lib/useWorkspace";
-import { registerWebMcpTools } from "./lib/webmcp";
+import { registerWebMcpTools, startWebMcpAutoRegister } from "./lib/webmcp";
+import { pushTimeline } from "./lib/store";
+import { REGIONS, REGION_IDS } from "./data/regions";
 import { GroundChecks } from "./ui/GroundChecks";
 import { MapCanvas } from "./ui/MapCanvas";
 
@@ -40,15 +43,24 @@ export default function App() {
   const [record, setRecord] = useState<Awaited<ReturnType<typeof export_decision>> | null>(null);
 
   useEffect(() => {
+    // One immediate try, then keep polling: the WebMCP client attaches
+    // asynchronously and often after the app has mounted.
     void registerWebMcpTools();
-    void fetch(`${import.meta.env.BASE_URL}data/up-rice-districts.geojson`)
+    void startWebMcpAutoRegister();
+  }, []);
+  useEffect(() => {
+    const path = `${import.meta.env.BASE_URL}${REGIONS[ws.region].geojsonPath}`;
+    void fetch(path)
       .then((r) => {
         if (!r.ok) throw new Error("geojson missing");
         return r.json();
       })
-      .then((gj: GeoJSON.FeatureCollection) => setGeojson(gj))
+      .then((gj: GeoJSON.FeatureCollection) => {
+        setGeojson(gj);
+        pushTimeline("region", `Loaded ${REGIONS[ws.region].state} district boundaries.`);
+      })
       .catch(() => undefined);
-  }, []);
+  }, [ws.region]);
 
   const open = ws.candidates.find((c) => c.districtId === ws.openEvidenceDistrictId);
   const avg = averageMetrics(
@@ -92,6 +104,20 @@ export default function App() {
           <div className="kicker">Mission</div>
           <p className="mission-copy">{ws.mission.objective}</p>
           <p className="note">{ws.mission.candidatePoolNote}</p>
+
+          <div className="kicker">Region</div>
+          <select
+            className="region-select"
+            value={ws.region}
+            onChange={(e) => void set_region({ region: e.target.value })}
+          >
+            {REGION_IDS.map((r) => (
+              <option key={r} value={r}>
+                {REGIONS[r].state}
+              </option>
+            ))}
+          </select>
+          <p className="note">{REGIONS[ws.region].note}</p>
 
           <div className="kicker">Constraints</div>
           <div className="constraint">

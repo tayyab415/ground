@@ -1,4 +1,5 @@
-import snapshot from "../data/snapshot.json";
+import snapshotUp from "../data/snapshot.json";
+import type { SnapshotShape } from "../data/regions";
 import { IRRIGATION_PRIORS, priorForClass } from "./irrigation";
 import type {
   Candidate,
@@ -34,12 +35,15 @@ export type SnapshotDistrict = {
     url?: string;
     note?: string;
   };
+  error?: unknown[];
 };
 
-export const SNAPSHOT = snapshot as {
-  retrievedAt: string;
-  districts: Record<string, SnapshotDistrict>;
-};
+export let SNAPSHOT: SnapshotShape = snapshotUp as SnapshotShape;
+
+/** The active region's snapshot. Switched by set_region; module-level by design. */
+export function setActiveSnapshot(next: SnapshotShape) {
+  SNAPSHOT = next;
+}
 
 export const RECIPE_WEIGHTS = {
   ndvi: 0.3,
@@ -135,7 +139,20 @@ export function irrigationFor(
   const applied = [...corrections]
     .reverse()
     .find((c) => c.districtId === districtId && c.fact === "canal_irrigation");
-  if (applied) return priorForClass(applied.to);
+  if (applied) {
+    const prior = priorForClass(applied.to);
+    if (applied.evidenceSource) {
+      return {
+        ...prior,
+        source: {
+          ...prior.source,
+          name: applied.evidenceSource.name,
+          note: applied.evidenceSource.note ?? prior.source.note,
+        },
+      };
+    }
+    return prior;
+  }
   return (
     IRRIGATION_PRIORS[districtId] ?? {
       class: "mixed_groundwater_surface",

@@ -16,8 +16,9 @@ See `PLAN.md` for the product shape.
 
 No in-app chatbot. No spawned Codex-army UI.
 
+0. Pick a region (`set_region` or the **Region** select in the left panel): Uttar Pradesh, Maharashtra (Vidarbha + Konkan), or the US Mississippi Delta. Switching re-centers the map and resets the ranking/corrections for that region.
 1. Open the desk. Click **Start analysis** (or ask the agent to call `show_candidates`).
-2. Ranked eastern Uttar Pradesh rice-belt districts appear. Gorakhpur leads because of an **unverified year-round canal** prior — not because of a fake NDVI.
+2. Ranked districts/counties for the active region appear. In UP, Gorakhpur leads because of an **unverified year-round canal** prior — not because of a fake NDVI.
 3. Open Gorakhpur evidence (`open_evidence` / View details). Crop health shows a **dated Earth Engine snapshot** where we have it. Ambedkar Nagar NDVI is a gap (not invented). Flood is a gap. The weak card is still canal irrigation.
 4. Human: the canal is seasonal. Apply the correction (`apply_correction`) or preview it first (`preview_scenario`).
 5. Ranking moves, with before/after ranks. NDVI stays out of the ranking while coverage is incomplete.
@@ -43,8 +44,10 @@ Registered on the page when the browser supports WebMCP. Each tool calls the sam
 | `highlight_uncertainty` | Mark unverified assumptions |
 | `preview_scenario` | Re-rank preview (not committed) |
 | `apply_correction` | Apply canal correction and re-rank (unsaved) |
+| `set_region` | Switch region (up / maharashtra / us); resets ranking + corrections |
+| `get_ground_checks` | Read GroundChecks + replies (never invented) |
 | `send_ground_check` | Create a field check (question + location + due date) |
-| `approve_evidence` | Mark a real field reply as verified |
+| `approve_evidence` | Mark a real field reply as verified; parses the officer's answer and applies the irrigation correction it implies |
 | `export_decision` | Decision record + hash |
 
 If `document.modelContext` is missing, the desk still works. The agent just cannot see the tab until a WebMCP-capable client loads the page.
@@ -54,10 +57,10 @@ If `document.modelContext` is missing, the desk still works. The agent just cann
 | Layer | Source | If missing |
 | --- | --- | --- |
 | Basemap | OSM raster tiles (no Maps JS key). Roads toggle adds/removes those tiles. | Tile gap banner; polygons still work |
-| Districts | `udit-001/india-maps-data` UP GeoJSON | Pool is 12 eastern rice-belt districts, not all 75 |
+| Districts | UP: `udit-001/india-maps-data`; Maharashtra: OSM boundary relations (`scripts/build-region-snapshot.py`); US: OSM county relations (`scripts/build-region-snapshot-us.py`) | Pools are 12–14 districts/counties per region, not full censuses |
 | Soil | ISRIC SoilGrids 2.0 point sample at centroid | Factor dropped, weights renormalized |
 | Elevation | Open-Meteo Elevation API (SRTM-based) | Factor dropped |
-| NDVI | Dated EE snapshot (`src/data/ndvi-ee-snapshot.json`): Sentinel-2 SR Harmonized + FAO/GAUL/2015/level2, 2026-07-29 to 2026-08-27, SCL 4-6 + QA60, 60 m, 64 scenes. Live EE is a **private** IAM/token-gated sidecar only. | **Ambedkar Nagar is a gap. Jaunpur was computed but is outside the V1 pool. No number is invented. Ranking drops NDVI while coverage is partial.** |
+| NDVI | UP: dated EE snapshot (`src/data/ndvi-ee-snapshot.json`), Sentinel-2 SR Harmonized, 60 m, 64 scenes, as of 2026-07-29…08-27. Maharashtra/US: no snapshot rows — NDVI is a gap, not invented. Live EE is a **private** IAM/token-gated Cloud Run sidecar (`ground-analysis`); a private build may point `VITE_ANALYSIS_URL` at it. | Ambedkar Nagar is a gap. Jaunpur was computed but is outside the V1 pool. No number is invented. Ranking drops NDVI while coverage is partial. |
 | Mills | Places API (New) via that same private sidecar, else OSM Overpass | Gap in this snapshot (Overpass 504) |
 | Irrigation | Explicit model prior (challengeable) | The canal fact is the point of the product |
 | Flood | Not loaded | Gap; flood constraint is not enforced |

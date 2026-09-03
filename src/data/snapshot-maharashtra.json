@@ -1,0 +1,594 @@
+{
+ "retrievedAt": "2026-09-03T03:58:18Z",
+ "region": "maharashtra",
+ "districts": {
+  "gondia": {
+   "id": "gondia",
+   "name": "Gondia",
+   "centroid": {
+    "lon": 80.12833,
+    "lat": 21.08801
+   },
+   "soil": {
+    "properties": {
+     "clay": {
+      "mean": 382,
+      "unit": "g/kg",
+      "conversion_factor": null
+     },
+     "sand": {
+      "mean": 205,
+      "unit": "g/kg",
+      "conversion_factor": null
+     },
+     "silt": {
+      "mean": 413,
+      "unit": "g/kg",
+      "conversion_factor": null
+     }
+    },
+    "source": "ISRIC SoilGrids 2.0",
+    "url": "https://rest.isric.org/soilgrids/v2.0/docs",
+    "query": {
+     "lat": 21.08801,
+     "lon": 80.12833,
+     "depth": "0-5cm"
+    }
+   },
+   "elevation": {
+    "meters": 259.0,
+    "source": "Open-Meteo Elevation API (SRTM-based)",
+    "url": "https://open-meteo.com/en/docs/elevation-api",
+    "query": {
+     "lat": 21.08801,
+     "lon": 80.12833
+    }
+   },
+   "error": [],
+   "mills": {
+    "status": "gap",
+    "reason": "Overpass API unavailable",
+    "source": "OpenStreetMap via Overpass API"
+   }
+  },
+  "bhandara": {
+   "id": "bhandara",
+   "name": "Bhandara",
+   "centroid": {
+    "lon": 79.80007,
+    "lat": 21.03183
+   },
+   "soil": {
+    "properties": {
+     "clay": {
+      "mean": 400,
+      "unit": "g/kg",
+      "conversion_factor": null
+     },
+     "sand": {
+      "mean": 178,
+      "unit": "g/kg",
+      "conversion_factor": null
+     },
+     "silt": {
+      "mean": 422,
+      "unit": "g/kg",
+      "conversion_factor": null
+     }
+    },
+    "source": "ISRIC SoilGrids 2.0",
+    "url": "https://rest.isric.org/soilgrids/v2.0/docs",
+    "query": {
+     "lat": 21.03183,
+     "lon": 79.80007,
+     "depth": "0-5cm"
+    }
+   },
+   "elevation": {
+    "meters": 270.0,
+    "source": "Open-Meteo Elevation API (SRTM-based)",
+    "url": "https://open-meteo.com/en/docs/elevation-api",
+    "query": {
+     "lat": 21.03183,
+     "lon": 79.80007
+    }
+   },
+   "error": [],
+   "mills": {
+    "status": "gap",
+    "reason": "Overpass API unavailable",
+    "source": "OpenStreetMap via Overpass API"
+   }
+  },
+  "wardha": {
+   "id": "wardha",
+   "name": "Wardha",
+   "centroid": {
+    "lon": 78.59412,
+    "lat": 20.78306
+   },
+   "soil": {
+    "properties": {
+     "clay": {
+      "mean": 423,
+      "unit": "g/kg",
+      "conversion_factor": null
+     },
+     "sand": {
+      "mean": 179,
+      "unit": "g/kg",
+      "conversion_factor": null
+     },
+     "silt": {
+      "mean": 398,
+      "unit": "g/kg",
+      "conversion_factor": null
+     }
+    },
+    "source": "ISRIC SoilGrids 2.0",
+    "url": "https://rest.isric.org/soilgrids/v2.0/docs",
+    "query": {
+     "lat": 20.78306,
+     "lon": 78.59412,
+     "depth": "0-5cm"
+    }
+   },
+   "elevation": {
+    "meters": 279.0,
+    "source": "Open-Meteo Elevation API (SRTM-based)",
+    "url": "https://open-meteo.com/en/docs/elevation-api",
+    "query": {
+     "lat": 20.78306,
+     "lon": 78.59412
+    }
+   },
+   "error": [],
+   "mills": {
+    "status": "gap",
+    "reason": "Overpass API unavailable",
+    "source": "OpenStreetMap via Overpass API"
+   }
+  },
+  "akola": {
+   "id": "akola",
+   "name": "Akola",
+   "centroid": {
+    "lon": 77.04648,
+    "lat": 20.71443
+   },
+   "soil": {
+    "properties": {
+     "clay": {
+      "mean": 486,
+      "unit": "g/kg",
+      "conversion_factor": null
+     },
+     "sand": {
+      "mean": 256,
+      "unit": "g/kg",
+      "conversion_factor": null
+     },
+     "silt": {
+      "mean": 258,
+      "unit": "g/kg",
+      "conversion_factor": null
+     }
+    },
+    "source": "ISRIC SoilGrids 2.0",
+    "url": "https://rest.isric.org/soilgrids/v2.0/docs",
+    "query": {
+     "lat": 20.71443,
+     "lon": 77.04648,
+     "depth": "0-5cm"
+    }
+   },
+   "elevation": {
+    "meters": 289.0,
+    "source": "Open-Meteo Elevation API (SRTM-based)",
+    "url": "https://open-meteo.com/en/docs/elevation-api",
+    "query": {
+     "lat": 20.71443,
+     "lon": 77.04648
+    }
+   },
+   "error": [],
+   "mills": {
+    "status": "gap",
+    "reason": "Overpass API unavailable",
+    "source": "OpenStreetMap via Overpass API"
+   }
+  },
+  "gadchiroli": {
+   "id": "gadchiroli",
+   "name": "Gadchiroli",
+   "centroid": {
+    "lon": 80.28068,
+    "lat": 19.90491
+   },
+   "soil": {
+    "properties": {
+     "clay": {
+      "mean": 337,
+      "unit": "g/kg",
+      "conversion_factor": null
+     },
+     "sand": {
+      "mean": 297,
+      "unit": "g/kg",
+      "conversion_factor": null
+     },
+     "silt": {
+      "mean": 366,
+      "unit": "g/kg",
+      "conversion_factor": null
+     }
+    },
+    "source": "ISRIC SoilGrids 2.0",
+    "url": "https://rest.isric.org/soilgrids/v2.0/docs",
+    "query": {
+     "lat": 19.90491,
+     "lon": 80.28068,
+     "depth": "0-5cm"
+    }
+   },
+   "elevation": {
+    "meters": 296.0,
+    "source": "Open-Meteo Elevation API (SRTM-based)",
+    "url": "https://open-meteo.com/en/docs/elevation-api",
+    "query": {
+     "lat": 19.90491,
+     "lon": 80.28068
+    }
+   },
+   "error": [],
+   "mills": {
+    "status": "gap",
+    "reason": "Overpass API unavailable",
+    "source": "OpenStreetMap via Overpass API"
+   }
+  },
+  "washim": {
+   "id": "washim",
+   "name": "Washim",
+   "centroid": {
+    "lon": 77.20385,
+    "lat": 20.25284
+   },
+   "soil": {
+    "properties": {
+     "clay": {
+      "mean": 544,
+      "unit": "g/kg",
+      "conversion_factor": null
+     },
+     "sand": {
+      "mean": 226,
+      "unit": "g/kg",
+      "conversion_factor": null
+     },
+     "silt": {
+      "mean": 230,
+      "unit": "g/kg",
+      "conversion_factor": null
+     }
+    },
+    "source": "ISRIC SoilGrids 2.0",
+    "url": "https://rest.isric.org/soilgrids/v2.0/docs",
+    "query": {
+     "lat": 20.25284,
+     "lon": 77.20385,
+     "depth": "0-5cm"
+    }
+   },
+   "elevation": {
+    "meters": 510.0,
+    "source": "Open-Meteo Elevation API (SRTM-based)",
+    "url": "https://open-meteo.com/en/docs/elevation-api",
+    "query": {
+     "lat": 20.25284,
+     "lon": 77.20385
+    }
+   },
+   "error": [],
+   "mills": {
+    "status": "gap",
+    "reason": "Overpass API unavailable",
+    "source": "OpenStreetMap via Overpass API"
+   }
+  },
+  "chandrapur": {
+   "id": "chandrapur",
+   "name": "Chandrapur",
+   "centroid": {
+    "lon": 79.34665,
+    "lat": 20.12091
+   },
+   "soil": {
+    "properties": {
+     "clay": {
+      "mean": 358,
+      "unit": "g/kg",
+      "conversion_factor": null
+     },
+     "sand": {
+      "mean": 270,
+      "unit": "g/kg",
+      "conversion_factor": null
+     },
+     "silt": {
+      "mean": 372,
+      "unit": "g/kg",
+      "conversion_factor": null
+     }
+    },
+    "source": "ISRIC SoilGrids 2.0",
+    "url": "https://rest.isric.org/soilgrids/v2.0/docs",
+    "query": {
+     "lat": 20.12091,
+     "lon": 79.34665,
+     "depth": "0-5cm"
+    }
+   },
+   "elevation": {
+    "meters": 230.0,
+    "source": "Open-Meteo Elevation API (SRTM-based)",
+    "url": "https://open-meteo.com/en/docs/elevation-api",
+    "query": {
+     "lat": 20.12091,
+     "lon": 79.34665
+    }
+   },
+   "error": [],
+   "mills": {
+    "status": "gap",
+    "reason": "Overpass API unavailable",
+    "source": "OpenStreetMap via Overpass API"
+   }
+  },
+  "yavatmal": {
+   "id": "yavatmal",
+   "name": "Yavatmal",
+   "centroid": {
+    "lon": 78.05879,
+    "lat": 19.99689
+   },
+   "soil": {
+    "properties": {
+     "clay": {
+      "mean": 400,
+      "unit": "g/kg",
+      "conversion_factor": null
+     },
+     "sand": {
+      "mean": 297,
+      "unit": "g/kg",
+      "conversion_factor": null
+     },
+     "silt": {
+      "mean": 303,
+      "unit": "g/kg",
+      "conversion_factor": null
+     }
+    },
+    "source": "ISRIC SoilGrids 2.0",
+    "url": "https://rest.isric.org/soilgrids/v2.0/docs",
+    "query": {
+     "lat": 19.99689,
+     "lon": 78.05879,
+     "depth": "0-5cm"
+    }
+   },
+   "elevation": {
+    "meters": 308.0,
+    "source": "Open-Meteo Elevation API (SRTM-based)",
+    "url": "https://open-meteo.com/en/docs/elevation-api",
+    "query": {
+     "lat": 19.99689,
+     "lon": 78.05879
+    }
+   },
+   "error": [],
+   "mills": {
+    "status": "gap",
+    "reason": "Overpass API unavailable",
+    "source": "OpenStreetMap via Overpass API"
+   }
+  },
+  "ratnagiri": {
+   "id": "ratnagiri",
+   "name": "Ratnagiri",
+   "centroid": {
+    "lon": 73.48161,
+    "lat": 17.21738
+   },
+   "soil": {
+    "properties": {
+     "clay": {
+      "mean": 370,
+      "unit": "g/kg",
+      "conversion_factor": null
+     },
+     "sand": {
+      "mean": 322,
+      "unit": "g/kg",
+      "conversion_factor": null
+     },
+     "silt": {
+      "mean": 308,
+      "unit": "g/kg",
+      "conversion_factor": null
+     }
+    },
+    "source": "ISRIC SoilGrids 2.0",
+    "url": "https://rest.isric.org/soilgrids/v2.0/docs",
+    "query": {
+     "lat": 17.21738,
+     "lon": 73.48161,
+     "depth": "0-5cm"
+    }
+   },
+   "elevation": {
+    "meters": 242.0,
+    "source": "Open-Meteo Elevation API (SRTM-based)",
+    "url": "https://open-meteo.com/en/docs/elevation-api",
+    "query": {
+     "lat": 17.21738,
+     "lon": 73.48161
+    }
+   },
+   "error": [],
+   "mills": {
+    "status": "gap",
+    "reason": "Overpass API unavailable",
+    "source": "OpenStreetMap via Overpass API"
+   }
+  },
+  "amravati": {
+   "id": "amravati",
+   "name": "Amravati",
+   "centroid": {
+    "lon": 77.71427,
+    "lat": 21.14551
+   },
+   "soil": {
+    "properties": {
+     "clay": {
+      "mean": 485,
+      "unit": "g/kg",
+      "conversion_factor": null
+     },
+     "sand": {
+      "mean": 247,
+      "unit": "g/kg",
+      "conversion_factor": null
+     },
+     "silt": {
+      "mean": 267,
+      "unit": "g/kg",
+      "conversion_factor": null
+     }
+    },
+    "source": "ISRIC SoilGrids 2.0",
+    "url": "https://rest.isric.org/soilgrids/v2.0/docs",
+    "query": {
+     "lat": 21.14551,
+     "lon": 77.71427,
+     "depth": "0-5cm"
+    }
+   },
+   "elevation": {
+    "meters": 350.0,
+    "source": "Open-Meteo Elevation API (SRTM-based)",
+    "url": "https://open-meteo.com/en/docs/elevation-api",
+    "query": {
+     "lat": 21.14551,
+     "lon": 77.71427
+    }
+   },
+   "error": [],
+   "mills": {
+    "status": "gap",
+    "reason": "Overpass API unavailable",
+    "source": "OpenStreetMap via Overpass API"
+   }
+  },
+  "nagpur": {
+   "id": "nagpur",
+   "name": "Nagpur",
+   "centroid": {
+    "lon": 79.04388,
+    "lat": 21.18303
+   },
+   "soil": {
+    "properties": {
+     "clay": {
+      "mean": 411,
+      "unit": "g/kg",
+      "conversion_factor": null
+     },
+     "sand": {
+      "mean": 123,
+      "unit": "g/kg",
+      "conversion_factor": null
+     },
+     "silt": {
+      "mean": 467,
+      "unit": "g/kg",
+      "conversion_factor": null
+     }
+    },
+    "source": "ISRIC SoilGrids 2.0",
+    "url": "https://rest.isric.org/soilgrids/v2.0/docs",
+    "query": {
+     "lat": 21.18303,
+     "lon": 79.04388,
+     "depth": "0-5cm"
+    }
+   },
+   "elevation": {
+    "meters": 320.0,
+    "source": "Open-Meteo Elevation API (SRTM-based)",
+    "url": "https://open-meteo.com/en/docs/elevation-api",
+    "query": {
+     "lat": 21.18303,
+     "lon": 79.04388
+    }
+   },
+   "error": [],
+   "mills": {
+    "status": "gap",
+    "reason": "Overpass API unavailable",
+    "source": "OpenStreetMap via Overpass API"
+   }
+  },
+  "raigad": {
+   "id": "raigad",
+   "name": "Raigad",
+   "centroid": {
+    "lon": 73.28803,
+    "lat": 18.4504
+   },
+   "soil": {
+    "properties": {
+     "clay": {
+      "mean": 349,
+      "unit": "g/kg",
+      "conversion_factor": null
+     },
+     "sand": {
+      "mean": 355,
+      "unit": "g/kg",
+      "conversion_factor": null
+     },
+     "silt": {
+      "mean": 296,
+      "unit": "g/kg",
+      "conversion_factor": null
+     }
+    },
+    "source": "ISRIC SoilGrids 2.0",
+    "url": "https://rest.isric.org/soilgrids/v2.0/docs",
+    "query": {
+     "lat": 18.4504,
+     "lon": 73.28803,
+     "depth": "0-5cm"
+    }
+   },
+   "elevation": {
+    "meters": 59.0,
+    "source": "Open-Meteo Elevation API (SRTM-based)",
+    "url": "https://open-meteo.com/en/docs/elevation-api",
+    "query": {
+     "lat": 18.4504,
+     "lon": 73.28803
+    }
+   },
+   "error": [],
+   "mills": {
+    "status": "gap",
+    "reason": "Overpass API unavailable",
+    "source": "OpenStreetMap via Overpass API"
+   }
+  }
+ }
+}
