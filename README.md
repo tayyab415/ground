@@ -77,7 +77,19 @@ npm test
 npm run dev
 ```
 
-Optional analysis sidecar is **private** (token + Cloud Run IAM-only). Judges use the static desk; `VITE_ANALYSIS_URL` stays empty. See `server/README.md`. Do not publish `/v1/ndvi`, Places, geocode, or directions without auth. Do not CORS-open compute. Do not mint Maps keys. Do not put the sidecar URL or token in the public Pages bundle.
+Optional analysis sidecar is **private** (token + Cloud Run IAM-only). Judges use the static desk; `VITE_ANALYSIS_URL` stays empty in the public build. See `server/README.md`. Do not publish `/v1/ndvi`, Places, geocode, or directions without auth. Do not CORS-open compute. Do not mint Maps keys. Do not put the sidecar URL or token in the public Pages bundle.
+
+**Private build with the Cloud Run sidecar.** The service `ground-analysis` is deployed at
+`https://ground-analysis-1027824348124.us-central1.run.app` (IAM-only + `GROUND_SIDECAR_TOKEN`,
+verified to return real Sentinel-2 NDVI). A non-public build may point at it:
+
+```bash
+VITE_ANALYSIS_URL=https://ground-analysis-1027824348124.us-central1.run.app npm run build
+```
+
+The browser then calls `/v1/ndvi` with the operator's own Google identity (add
+`roles/run.invoker` to the service for that account). No token ever ships in the bundle.
+The Pages build stays on the dated EE snapshot so the public desk never depends on private auth.
 
 The committed static desk lives in `/docs` (`npm run snapshot:docs`).
 
