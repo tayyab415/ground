@@ -178,6 +178,11 @@ describe("User Prompt execute wrappers share the UI store", () => {
     expect(canalValueFrom({ value: "not seasonal; year-round" })).toBe("year-round");
     expect(canalValueFrom({ value: "not seasonal" })).toBe("year-round");
     expect(canalValueFrom({ value: "The canal here is seasonal, not year-round." })).toBe("seasonal");
+    expect(canalValueFrom({ value: "seasonal? no, perennial" })).toBe("year-round");
+    expect(canalValueFrom({ value: "seasonal? no. perennial" })).toBe("year-round");
+    expect(canalValueFrom({ value: "seasonal: no, year-round" })).toBe("year-round");
+    expect(canalValueFrom({ value: "seasonal? no" })).toBe("year-round");
+    expect(canalValueFrom({ value: "seasonal and perennial" })).toBeUndefined();
 
     const bound: Record<string, (input?: unknown, options?: unknown) => Promise<unknown>> = {};
     Object.defineProperty(document, "modelContext", {
@@ -210,6 +215,9 @@ describe("User Prompt execute wrappers share the UI store", () => {
       "perennial, not seasonal",
       "year-round (not seasonal)",
       "not seasonal; year-round",
+      "seasonal? no, perennial",
+      "seasonal? no. perennial",
+      "seasonal: no, year-round",
     ];
     for (const value of mixed) {
       replaceState(emptyWorkspace());
@@ -233,5 +241,29 @@ describe("User Prompt execute wrappers share the UI store", () => {
       expect(getState().candidates.find((c) => c.districtId === "ballia")?.rank).not.toBeUndefined();
       expect(balliaBefore).toBeDefined();
     }
+
+    replaceState(emptyWorkspace());
+    await bound.show_candidates!({});
+    const gRank = getState().candidates.find((c) => c.districtId === "gorakhpur")?.rank;
+    const punct = (await bound.apply_correction!({
+      district: "gorakhpur",
+      value: "seasonal? no, perennial",
+    })) as { ok?: boolean; error?: string };
+    expect(punct.ok).toBe(false);
+    expect(String(punct.error)).toMatch(/no-op/i);
+    expect(getState().candidates.find((c) => c.districtId === "gorakhpur")?.rank).toBe(gRank);
+    expect(get_unsaved_changes().corrections).toEqual([]);
+
+    const ambiguous = (await bound.apply_correction!({
+      district: "ballia",
+      value: "seasonal and perennial",
+    })) as { ok?: boolean; error?: string };
+    expect(ambiguous.ok).toBe(false);
+    expect(String(ambiguous.error)).toMatch(/ambiguous/i);
+    expect(get_unsaved_changes().corrections).toEqual([]);
+    expect(
+      getState().candidates.find((c) => c.districtId === "ballia")?.evidence.find((e) => e.id === "irrigation")
+        ?.status,
+    ).not.toBe("corrected");
   });
 });
