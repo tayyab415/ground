@@ -183,6 +183,9 @@ describe("User Prompt execute wrappers share the UI store", () => {
     expect(canalValueFrom({ value: "seasonal: no, year-round" })).toBe("year-round");
     expect(canalValueFrom({ value: "seasonal? no" })).toBe("year-round");
     expect(canalValueFrom({ value: "seasonal and perennial" })).toBeUndefined();
+    expect(canalValueFrom({ value: "seasonal? no, not year-round" })).toBeUndefined();
+    expect(canalValueFrom({ value: "not seasonal, not perennial" })).toBeUndefined();
+    expect(canalValueFrom({ value: "not seasonal, not year-round" })).toBeUndefined();
 
     const bound: Record<string, (input?: unknown, options?: unknown) => Promise<unknown>> = {};
     Object.defineProperty(document, "modelContext", {
@@ -265,5 +268,28 @@ describe("User Prompt execute wrappers share the UI store", () => {
       getState().candidates.find((c) => c.districtId === "ballia")?.evidence.find((e) => e.id === "irrigation")
         ?.status,
     ).not.toBe("corrected");
+
+    for (const value of ["seasonal? no, not year-round", "not seasonal, not perennial", "not seasonal, not year-round"]) {
+      replaceState(emptyWorkspace());
+      await bound.show_candidates!({});
+      const before = getState();
+      const ranks = Object.fromEntries(before.candidates.map((c) => [c.districtId, c.rank]));
+      const denied = (await bound.apply_correction!({
+        district: "ballia",
+        value,
+      })) as { ok?: boolean; error?: string };
+      expect(denied.ok, value).toBe(false);
+      expect(String(denied.error), value).toMatch(/ambiguous|classify/i);
+      expect(get_unsaved_changes().corrections, value).toEqual([]);
+      const irrig = getState()
+        .candidates.find((c) => c.districtId === "ballia")
+        ?.evidence.find((e) => e.id === "irrigation");
+      expect(irrig?.status, value).not.toBe("corrected");
+      expect(irrig?.value, value).not.toBe("perennial_canal_assumed");
+      expect(irrig?.value, value).not.toBe("seasonal_canal");
+      for (const c of getState().candidates) {
+        expect(c.rank, `${value} ${c.districtId}`).toBe(ranks[c.districtId]);
+      }
+    }
   });
 });
