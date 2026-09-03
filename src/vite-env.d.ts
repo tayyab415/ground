@@ -15,16 +15,25 @@ type WebMcpInputSchema = {
   additionalProperties?: boolean;
 };
 
+type WebMcpToolExecuteOptions = {
+  signal?: AbortSignal;
+};
+
 type WebMcpTool = {
   name: string;
   description: string;
   inputSchema: WebMcpInputSchema;
   annotations?: { readOnlyHint?: boolean; destructiveHint?: boolean };
-  execute: (input: Record<string, unknown>) => unknown | Promise<unknown>;
+  execute: (
+    input?: unknown,
+    options?: WebMcpToolExecuteOptions,
+  ) => unknown | Promise<unknown>;
 };
 
 type WebMcpContext = {
   registerTool: (tool: WebMcpTool, options?: { signal?: AbortSignal }) => Promise<unknown>;
+  executeTool?: (tool: unknown, input?: unknown, options?: WebMcpToolExecuteOptions) => Promise<unknown>;
+  getTools?: (options?: { fromOrigins?: string[] }) => Promise<unknown[]>;
 };
 
 interface Document {
