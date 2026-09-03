@@ -1,3 +1,4 @@
+import { REGIONS } from "../data/regions";
 import type {
   Approval,
   Constraints,
@@ -9,29 +10,11 @@ import type {
   Workspace,
 } from "./types";
 
-export const DEFAULT_MISSION: Mission = {
-  title: "Rice Resilience Program — Uttar Pradesh",
-  region: "Uttar Pradesh, India",
-  objective:
-    "Improve rice resilience across Uttar Pradesh with data-driven district prioritization.",
-  candidatePoolNote:
-    "V1 candidate pool is 12 eastern rice-belt districts with fetchable geometry. This is not a 75-district census ranking.",
-};
+const UP_DEF = REGIONS.up;
 
-export const DEFAULT_CONSTRAINTS: Constraints = {
-  budgetCr: 50,
-  maxDistricts: 3,
-  irrigatedAreaMinPct: 25,
-  floodRiskMax: "medium",
-  millDistanceKm: 150,
-  notes: [
-    "Irrigated-area minimum cannot be enforced: no district irrigation-share table is loaded.",
-    "Flood-risk maximum cannot be enforced: flood layer is a gap.",
-    "Mill-distance maximum cannot be enforced: mill registry is a gap in this session.",
-  ],
-};
-
-export const EASTERN_UP_CENTER: [number, number] = [26.7, 83.45];
+export const DEFAULT_MISSION: Mission = UP_DEF.mission;
+export const DEFAULT_CONSTRAINTS: Constraints = UP_DEF.constraints;
+export const EASTERN_UP_CENTER: [number, number] = UP_DEF.mapCenter;
 
 let seq = 1;
 function nextId(prefix: string) {
@@ -52,6 +35,7 @@ export function emptyWorkspace(): Workspace {
       roads: true,
     },
     scenario: "base",
+    region: "up",
     selection: null,
     drawMode: "idle",
     candidates: [],
@@ -80,7 +64,7 @@ export function emptyWorkspace(): Workspace {
     view: "desk",
     map: {
       center: EASTERN_UP_CENTER,
-      zoom: 8,
+      zoom: UP_DEF.mapZoom,
       bounds: null,
       tiles: "ok",
       tilesNote: "OSM raster tiles. No Google Maps JavaScript key in the browser.",
@@ -140,7 +124,10 @@ export function setScenario(scenario: ScenarioId) {
 export function resetWorkspace() {
   const geojson = state.geojson;
   const webmcp = state.webmcp;
-  replaceState({ ...emptyWorkspace(), geojson, webmcp });
+  const region = state.region;
+  const mission = state.mission;
+  const constraints = state.constraints;
+  replaceState({ ...emptyWorkspace(), geojson, webmcp, region, mission, constraints });
 }
 
 export function recordApproval(approval: Approval) {

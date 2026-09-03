@@ -1,3 +1,12 @@
+export type RegionId = "up" | "maharashtra" | "us";
+
+export type RegionBrief = {
+  id: RegionId;
+  state: string;
+  crop: string;
+  note: string;
+};
+
 export type LayerId =
   | "districts"
   | "ndvi"
@@ -58,6 +67,7 @@ export type Correction = {
   note: string;
   appliedAt: string;
   committed: boolean;
+  evidenceSource?: { name: string; note?: string };
 };
 
 export type Candidate = {
@@ -185,6 +195,7 @@ export type Workspace = {
   constraints: Constraints;
   layers: Record<LayerId, boolean>;
   scenario: ScenarioId;
+  region: RegionId;
   selection: Selection | null;
   drawMode: DrawMode;
   candidates: Candidate[];
@@ -206,6 +217,7 @@ export type Workspace = {
 };
 
 export type DecisionRecord = {
+  region: RegionId;
   title: string;
   generatedAt: string;
   mission: Mission;

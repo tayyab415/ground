@@ -1,0 +1,692 @@
+{
+ "retrievedAt": "2026-09-03T04:11:34Z",
+ "region": "us",
+ "districts": {
+  "leflore-ms": {
+   "id": "leflore-ms",
+   "name": "Leflore County, MS",
+   "centroid": {
+    "lon": -90.30476,
+    "lat": 33.55182
+   },
+   "soil": {
+    "properties": {
+     "clay": {
+      "mean": 403,
+      "unit": "g/kg",
+      "conversion_factor": null
+     },
+     "sand": {
+      "mean": 70,
+      "unit": "g/kg",
+      "conversion_factor": null
+     },
+     "silt": {
+      "mean": 528,
+      "unit": "g/kg",
+      "conversion_factor": null
+     }
+    },
+    "source": "ISRIC SoilGrids 2.0",
+    "url": "https://rest.isric.org/soilgrids/v2.0/docs",
+    "query": {
+     "lat": 33.55182,
+     "lon": -90.30476,
+     "depth": "0-5cm"
+    }
+   },
+   "elevation": {
+    "meters": 38.0,
+    "source": "Open-Meteo Elevation API (SRTM-based)",
+    "url": "https://open-meteo.com/en/docs/elevation-api",
+    "query": {
+     "lat": 33.55182,
+     "lon": -90.30476
+    }
+   },
+   "error": [],
+   "mills": {
+    "status": "gap",
+    "reason": "Overpass API unavailable",
+    "source": "OpenStreetMap via Overpass API"
+   }
+  },
+  "washington-ms": {
+   "id": "washington-ms",
+   "name": "Washington County, MS",
+   "centroid": {
+    "lon": -90.94154,
+    "lat": 33.2873
+   },
+   "soil": {
+    "properties": {
+     "clay": {
+      "mean": 417,
+      "unit": "g/kg",
+      "conversion_factor": null
+     },
+     "sand": {
+      "mean": 50,
+      "unit": "g/kg",
+      "conversion_factor": null
+     },
+     "silt": {
+      "mean": 533,
+      "unit": "g/kg",
+      "conversion_factor": null
+     }
+    },
+    "source": "ISRIC SoilGrids 2.0",
+    "url": "https://rest.isric.org/soilgrids/v2.0/docs",
+    "query": {
+     "lat": 33.2873,
+     "lon": -90.94154,
+     "depth": "0-5cm"
+    }
+   },
+   "elevation": {
+    "meters": 33.0,
+    "source": "Open-Meteo Elevation API (SRTM-based)",
+    "url": "https://open-meteo.com/en/docs/elevation-api",
+    "query": {
+     "lat": 33.2873,
+     "lon": -90.94154
+    }
+   },
+   "error": [],
+   "mills": {
+    "status": "gap",
+    "reason": "Overpass API unavailable",
+    "source": "OpenStreetMap via Overpass API"
+   }
+  },
+  "chicot-ar": {
+   "id": "chicot-ar",
+   "name": "Chicot County, AR",
+   "centroid": {
+    "lon": -91.29432,
+    "lat": 33.26268
+   },
+   "soil": {
+    "properties": {
+     "clay": {
+      "mean": 419,
+      "unit": "g/kg",
+      "conversion_factor": null
+     },
+     "sand": {
+      "mean": 69,
+      "unit": "g/kg",
+      "conversion_factor": null
+     },
+     "silt": {
+      "mean": 513,
+      "unit": "g/kg",
+      "conversion_factor": null
+     }
+    },
+    "source": "ISRIC SoilGrids 2.0",
+    "url": "https://rest.isric.org/soilgrids/v2.0/docs",
+    "query": {
+     "lat": 33.26268,
+     "lon": -91.29432,
+     "depth": "0-5cm"
+    }
+   },
+   "elevation": {
+    "meters": 35.0,
+    "source": "Open-Meteo Elevation API (SRTM-based)",
+    "url": "https://open-meteo.com/en/docs/elevation-api",
+    "query": {
+     "lat": 33.26268,
+     "lon": -91.29432
+    }
+   },
+   "error": [],
+   "mills": {
+    "status": "gap",
+    "reason": "Overpass API unavailable",
+    "source": "OpenStreetMap via Overpass API"
+   }
+  },
+  "mississippi-ar": {
+   "id": "mississippi-ar",
+   "name": "Mississippi County, AR",
+   "centroid": {
+    "lon": -90.05514,
+    "lat": 35.76449
+   },
+   "soil": {
+    "properties": {
+     "clay": {
+      "mean": 319,
+      "unit": "g/kg",
+      "conversion_factor": null
+     },
+     "sand": {
+      "mean": 301,
+      "unit": "g/kg",
+      "conversion_factor": null
+     },
+     "silt": {
+      "mean": 380,
+      "unit": "g/kg",
+      "conversion_factor": null
+     }
+    },
+    "source": "ISRIC SoilGrids 2.0",
+    "url": "https://rest.isric.org/soilgrids/v2.0/docs",
+    "query": {
+     "lat": 35.76449,
+     "lon": -90.05514,
+     "depth": "0-5cm"
+    }
+   },
+   "elevation": {
+    "meters": 69.0,
+    "source": "Open-Meteo Elevation API (SRTM-based)",
+    "url": "https://open-meteo.com/en/docs/elevation-api",
+    "query": {
+     "lat": 35.76449,
+     "lon": -90.05514
+    }
+   },
+   "error": [],
+   "mills": {
+    "status": "gap",
+    "reason": "Overpass API unavailable",
+    "source": "OpenStreetMap via Overpass API"
+   }
+  },
+  "bolivar-ms": {
+   "id": "bolivar-ms",
+   "name": "Bolivar County, MS",
+   "centroid": {
+    "lon": -90.88616,
+    "lat": 33.79573
+   },
+   "soil": {
+    "properties": {
+     "clay": {
+      "mean": 347,
+      "unit": "g/kg",
+      "conversion_factor": null
+     },
+     "sand": {
+      "mean": 146,
+      "unit": "g/kg",
+      "conversion_factor": null
+     },
+     "silt": {
+      "mean": 507,
+      "unit": "g/kg",
+      "conversion_factor": null
+     }
+    },
+    "source": "ISRIC SoilGrids 2.0",
+    "url": "https://rest.isric.org/soilgrids/v2.0/docs",
+    "query": {
+     "lat": 33.79573,
+     "lon": -90.88616,
+     "depth": "0-5cm"
+    }
+   },
+   "elevation": {
+    "meters": 42.0,
+    "source": "Open-Meteo Elevation API (SRTM-based)",
+    "url": "https://open-meteo.com/en/docs/elevation-api",
+    "query": {
+     "lat": 33.79573,
+     "lon": -90.88616
+    }
+   },
+   "error": [],
+   "mills": {
+    "status": "gap",
+    "reason": "Overpass API unavailable",
+    "source": "OpenStreetMap via Overpass API"
+   }
+  },
+  "humphreys-ms": {
+   "id": "humphreys-ms",
+   "name": "Humphreys County, MS",
+   "centroid": {
+    "lon": -90.52596,
+    "lat": 33.12609
+   },
+   "soil": {
+    "properties": {
+     "clay": {
+      "mean": 303,
+      "unit": "g/kg",
+      "conversion_factor": null
+     },
+     "sand": {
+      "mean": 66,
+      "unit": "g/kg",
+      "conversion_factor": null
+     },
+     "silt": {
+      "mean": 631,
+      "unit": "g/kg",
+      "conversion_factor": null
+     }
+    },
+    "source": "ISRIC SoilGrids 2.0",
+    "url": "https://rest.isric.org/soilgrids/v2.0/docs",
+    "query": {
+     "lat": 33.12609,
+     "lon": -90.52596,
+     "depth": "0-5cm"
+    }
+   },
+   "elevation": {
+    "meters": 34.0,
+    "source": "Open-Meteo Elevation API (SRTM-based)",
+    "url": "https://open-meteo.com/en/docs/elevation-api",
+    "query": {
+     "lat": 33.12609,
+     "lon": -90.52596
+    }
+   },
+   "error": [],
+   "mills": {
+    "status": "gap",
+    "reason": "Overpass API unavailable",
+    "source": "OpenStreetMap via Overpass API"
+   }
+  },
+  "tunica-ms": {
+   "id": "tunica-ms",
+   "name": "Tunica County, MS",
+   "centroid": {
+    "lon": -90.37735,
+    "lat": 34.64872
+   },
+   "soil": {
+    "properties": {
+     "clay": {
+      "mean": 372,
+      "unit": "g/kg",
+      "conversion_factor": null
+     },
+     "sand": {
+      "mean": 131,
+      "unit": "g/kg",
+      "conversion_factor": null
+     },
+     "silt": {
+      "mean": 497,
+      "unit": "g/kg",
+      "conversion_factor": null
+     }
+    },
+    "source": "ISRIC SoilGrids 2.0",
+    "url": "https://rest.isric.org/soilgrids/v2.0/docs",
+    "query": {
+     "lat": 34.64872,
+     "lon": -90.37735,
+     "depth": "0-5cm"
+    }
+   },
+   "elevation": {
+    "meters": 56.0,
+    "source": "Open-Meteo Elevation API (SRTM-based)",
+    "url": "https://open-meteo.com/en/docs/elevation-api",
+    "query": {
+     "lat": 34.64872,
+     "lon": -90.37735
+    }
+   },
+   "error": [],
+   "mills": {
+    "status": "gap",
+    "reason": "Overpass API unavailable",
+    "source": "OpenStreetMap via Overpass API"
+   }
+  },
+  "yazoo-ms": {
+   "id": "yazoo-ms",
+   "name": "Yazoo County, MS",
+   "centroid": {
+    "lon": -90.39837,
+    "lat": 32.77792
+   },
+   "soil": {
+    "properties": {
+     "clay": {
+      "mean": 325,
+      "unit": "g/kg",
+      "conversion_factor": null
+     },
+     "sand": {
+      "mean": 144,
+      "unit": "g/kg",
+      "conversion_factor": null
+     },
+     "silt": {
+      "mean": 531,
+      "unit": "g/kg",
+      "conversion_factor": null
+     }
+    },
+    "source": "ISRIC SoilGrids 2.0",
+    "url": "https://rest.isric.org/soilgrids/v2.0/docs",
+    "query": {
+     "lat": 32.77792,
+     "lon": -90.39837,
+     "depth": "0-5cm"
+    }
+   },
+   "elevation": {
+    "meters": 102.0,
+    "source": "Open-Meteo Elevation API (SRTM-based)",
+    "url": "https://open-meteo.com/en/docs/elevation-api",
+    "query": {
+     "lat": 32.77792,
+     "lon": -90.39837
+    }
+   },
+   "error": [],
+   "mills": {
+    "status": "gap",
+    "reason": "Overpass API unavailable",
+    "source": "OpenStreetMap via Overpass API"
+   }
+  },
+  "sunflower-ms": {
+   "id": "sunflower-ms",
+   "name": "Sunflower County, MS",
+   "centroid": {
+    "lon": -90.58877,
+    "lat": 33.60205
+   },
+   "soil": {
+    "properties": {
+     "clay": {
+      "mean": 379,
+      "unit": "g/kg",
+      "conversion_factor": null
+     },
+     "sand": {
+      "mean": 67,
+      "unit": "g/kg",
+      "conversion_factor": null
+     },
+     "silt": {
+      "mean": 554,
+      "unit": "g/kg",
+      "conversion_factor": null
+     }
+    },
+    "source": "ISRIC SoilGrids 2.0",
+    "url": "https://rest.isric.org/soilgrids/v2.0/docs",
+    "query": {
+     "lat": 33.60205,
+     "lon": -90.58877,
+     "depth": "0-5cm"
+    }
+   },
+   "elevation": {
+    "meters": 38.0,
+    "source": "Open-Meteo Elevation API (SRTM-based)",
+    "url": "https://open-meteo.com/en/docs/elevation-api",
+    "query": {
+     "lat": 33.60205,
+     "lon": -90.58877
+    }
+   },
+   "error": [],
+   "mills": {
+    "status": "gap",
+    "reason": "Overpass API unavailable",
+    "source": "OpenStreetMap via Overpass API"
+   }
+  },
+  "coahoma-ms": {
+   "id": "coahoma-ms",
+   "name": "Coahoma County, MS",
+   "centroid": {
+    "lon": -90.61007,
+    "lat": 34.22959
+   },
+   "soil": {
+    "properties": {
+     "clay": {
+      "mean": 423,
+      "unit": "g/kg",
+      "conversion_factor": null
+     },
+     "sand": {
+      "mean": 100,
+      "unit": "g/kg",
+      "conversion_factor": null
+     },
+     "silt": {
+      "mean": 477,
+      "unit": "g/kg",
+      "conversion_factor": null
+     }
+    },
+    "source": "ISRIC SoilGrids 2.0",
+    "url": "https://rest.isric.org/soilgrids/v2.0/docs",
+    "query": {
+     "lat": 34.22959,
+     "lon": -90.61007,
+     "depth": "0-5cm"
+    }
+   },
+   "elevation": {
+    "meters": 49.0,
+    "source": "Open-Meteo Elevation API (SRTM-based)",
+    "url": "https://open-meteo.com/en/docs/elevation-api",
+    "query": {
+     "lat": 34.22959,
+     "lon": -90.61007
+    }
+   },
+   "error": [],
+   "mills": {
+    "status": "gap",
+    "reason": "Overpass API unavailable",
+    "source": "OpenStreetMap via Overpass API"
+   }
+  },
+  "issaquena-ms": {
+   "id": "issaquena-ms",
+   "name": "Issaquena County, MS",
+   "centroid": {
+    "lon": -90.99198,
+    "lat": 32.73357
+   },
+   "soil": {
+    "properties": {
+     "clay": {
+      "mean": 402,
+      "unit": "g/kg",
+      "conversion_factor": null
+     },
+     "sand": {
+      "mean": 70,
+      "unit": "g/kg",
+      "conversion_factor": null
+     },
+     "silt": {
+      "mean": 528,
+      "unit": "g/kg",
+      "conversion_factor": null
+     }
+    },
+    "source": "ISRIC SoilGrids 2.0",
+    "url": "https://rest.isric.org/soilgrids/v2.0/docs",
+    "query": {
+     "lat": 32.73357,
+     "lon": -90.99198,
+     "depth": "0-5cm"
+    }
+   },
+   "elevation": {
+    "meters": 28.0,
+    "source": "Open-Meteo Elevation API (SRTM-based)",
+    "url": "https://open-meteo.com/en/docs/elevation-api",
+    "query": {
+     "lat": 32.73357,
+     "lon": -90.99198
+    }
+   },
+   "error": [],
+   "mills": {
+    "status": "gap",
+    "reason": "Overpass API unavailable",
+    "source": "OpenStreetMap via Overpass API"
+   }
+  },
+  "sharkey-ms": {
+   "id": "sharkey-ms",
+   "name": "Sharkey County, MS",
+   "centroid": {
+    "lon": -90.81566,
+    "lat": 32.88111
+   },
+   "soil": {
+    "properties": {
+     "clay": {
+      "mean": 376,
+      "unit": "g/kg",
+      "conversion_factor": null
+     },
+     "sand": {
+      "mean": 92,
+      "unit": "g/kg",
+      "conversion_factor": null
+     },
+     "silt": {
+      "mean": 532,
+      "unit": "g/kg",
+      "conversion_factor": null
+     }
+    },
+    "source": "ISRIC SoilGrids 2.0",
+    "url": "https://rest.isric.org/soilgrids/v2.0/docs",
+    "query": {
+     "lat": 32.88111,
+     "lon": -90.81566,
+     "depth": "0-5cm"
+    }
+   },
+   "elevation": {
+    "meters": 35.0,
+    "source": "Open-Meteo Elevation API (SRTM-based)",
+    "url": "https://open-meteo.com/en/docs/elevation-api",
+    "query": {
+     "lat": 32.88111,
+     "lon": -90.81566
+    }
+   },
+   "error": [],
+   "mills": {
+    "status": "gap",
+    "reason": "Overpass API unavailable",
+    "source": "OpenStreetMap via Overpass API"
+   }
+  },
+  "desha-ar": {
+   "id": "desha-ar",
+   "name": "Desha County, AR",
+   "centroid": {
+    "lon": -91.26628,
+    "lat": 33.83296
+   },
+   "soil": {
+    "properties": {
+     "clay": {
+      "mean": 416,
+      "unit": "g/kg",
+      "conversion_factor": null
+     },
+     "sand": {
+      "mean": 103,
+      "unit": "g/kg",
+      "conversion_factor": null
+     },
+     "silt": {
+      "mean": 480,
+      "unit": "g/kg",
+      "conversion_factor": null
+     }
+    },
+    "source": "ISRIC SoilGrids 2.0",
+    "url": "https://rest.isric.org/soilgrids/v2.0/docs",
+    "query": {
+     "lat": 33.83296,
+     "lon": -91.26628,
+     "depth": "0-5cm"
+    }
+   },
+   "elevation": {
+    "meters": 46.0,
+    "source": "Open-Meteo Elevation API (SRTM-based)",
+    "url": "https://open-meteo.com/en/docs/elevation-api",
+    "query": {
+     "lat": 33.83296,
+     "lon": -91.26628
+    }
+   },
+   "error": [],
+   "mills": {
+    "status": "gap",
+    "reason": "Overpass API unavailable",
+    "source": "OpenStreetMap via Overpass API"
+   }
+  },
+  "tallahatchie-ms": {
+   "id": "tallahatchie-ms",
+   "name": "Tallahatchie County, MS",
+   "centroid": {
+    "lon": -90.17384,
+    "lat": 33.95043
+   },
+   "soil": {
+    "properties": {
+     "clay": {
+      "mean": 365,
+      "unit": "g/kg",
+      "conversion_factor": null
+     },
+     "sand": {
+      "mean": 72,
+      "unit": "g/kg",
+      "conversion_factor": null
+     },
+     "silt": {
+      "mean": 563,
+      "unit": "g/kg",
+      "conversion_factor": null
+     }
+    },
+    "source": "ISRIC SoilGrids 2.0",
+    "url": "https://rest.isric.org/soilgrids/v2.0/docs",
+    "query": {
+     "lat": 33.95043,
+     "lon": -90.17384,
+     "depth": "0-5cm"
+    }
+   },
+   "elevation": {
+    "meters": 42.0,
+    "source": "Open-Meteo Elevation API (SRTM-based)",
+    "url": "https://open-meteo.com/en/docs/elevation-api",
+    "query": {
+     "lat": 33.95043,
+     "lon": -90.17384
+    }
+   },
+   "error": [],
+   "mills": {
+    "status": "gap",
+    "reason": "Overpass API unavailable",
+    "source": "OpenStreetMap via Overpass API"
+   }
+  }
+ }
+}

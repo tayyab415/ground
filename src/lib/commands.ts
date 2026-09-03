@@ -1,8 +1,9 @@
 import { fetchNdvi } from "./analysis";
 import { findStoredCheck, readStoredChecks, writeStoredCheck, writeStoredReply } from "./fieldStore";
+import { REGIONS, REGION_IDS, type SnapshotShape } from "../data/regions";
 import { polygonFromLonLat, vertexCount } from "./geo";
 import { canonicalJson, sha256Hex } from "./hash";
-import { SNAPSHOT, attachRankDelta, irrigationFor, lookupDistrictId, rankDistricts, uncertainDistrictIds } from "./rank";
+import { SNAPSHOT, attachRankDelta, irrigationFor, lookupDistrictId, rankDistricts, setActiveSnapshot, uncertainDistrictIds } from "./rank";
 import { defaultCorrectionNote, irrigationClassFromValue, valueFromIrrigationClass } from "./irrigation";
 import { NDVI_EE_SNAPSHOT } from "./ndviSnapshot";
 import {
@@ -22,6 +23,7 @@ import type {
   GroundCheck,
   GroundCheckReply,
   LayerId,
+  RegionId,
   ScenarioId,
   Selection,
 } from "./types";
@@ -44,6 +46,11 @@ function candidateByNameOrId(q: string): Candidate | undefined {
 export function get_workspace_state() {
   const s = getState();
   return {
+    region: s.region,
+    supportedRegions: REGION_IDS.map((id) => {
+      const d = REGIONS[id];
+      return { id, state: d.state, crop: d.crop, note: d.note };
+    }),
     mission: s.mission,
     constraints: s.constraints,
     layers: s.layers,
@@ -277,6 +284,7 @@ export function apply_correction(input: {
   value?: "seasonal" | "year-round";
   note?: string;
   scenario?: ScenarioId;
+  evidenceSource?: { name: string; note?: string };
 } = {}) {
   const s = getState();
   let districtId: string | undefined;
@@ -307,6 +315,7 @@ export function apply_correction(input: {
     note: input.note ?? defaultCorrectionNote(value),
     appliedAt: new Date().toISOString(),
     committed: false,
+    ...(input.evidenceSource ? { evidenceSource: input.evidenceSource } : {}),
   };
   const previous = s.candidates;
   addCorrection(correction);
@@ -366,11 +375,12 @@ export async function export_decision(input: { download?: boolean } = {}) {
       ].filter(Boolean),
     ),
   ];
+  const regionDef = REGIONS[s.region];
   const sources = [
     {
       name: "District boundaries",
       url: "https://github.com/udit-001/india-maps-data",
-      note: "Uttar Pradesh district GeoJSON. Not an official Survey of India product.",
+      note: `${regionDef.state} district/county GeoJSON (${regionDef.note}). Not an official survey product.`,
     },
     {
       name: "ISRIC SoilGrids 2.0",
@@ -398,6 +408,7 @@ export async function export_decision(input: { download?: boolean } = {}) {
     },
   ];
   const draft: Omit<DecisionRecord, "reproducibilityHash"> = {
+    region: s.region,
     title: `Decision record: ${s.mission.title}`,
     generatedAt: new Date().toISOString(),
     mission: s.mission,
@@ -444,6 +455,102 @@ export async function export_decision(input: { download?: boolean } = {}) {
     URL.revokeObjectURL(url);
   }
   return record;
+}
+
+export function get_ground_checks() {
+  const s = getState();
+  return {
+    checks: s.groundChecks.map((c) => ({
+      id: c.id,
+      districtId: c.districtId,
+      districtName: c.districtName,
+      question: c.question,
+      status: c.status,
+      dueAt: c.dueAt,
+      fieldPath: c.fieldPath,
+      deliveryGap: c.deliveryGap,
+      approvedAt: c.approvedAt,
+      hasReply: Boolean(c.reply),
+      reply: c.reply
+        ? {
+            answer: c.reply.answer,
+            capturedAt: c.reply.capturedAt,
+            receivedAt: c.reply.receivedAt,
+            store: c.reply.store,
+            gpsGap: c.reply.gpsGap,
+          }
+        : null,
+    })),
+    approvedReplyIds: s.groundChecks.filter((c) => c.status === "approved").map((c) => c.id),
+    note: "Ground checks live in this browser tab plus the same-tab localStorage store. No invented replies.",
+  };
+}
+
+export function set_region(input: { region?: string } = {}) {
+  const id = (input.region ?? "").trim().toLowerCase() as RegionId;
+  const def = REGIONS[id];
+  if (!def) {
+    return {
+      ok: false as const,
+      error: `Unknown region "${input.region}". Supported: ${REGION_IDS.join(", ")}.`,
+      supported: REGION_IDS,
+    };
+  }
+  if (getState().region === id && getState().candidates.length > 0) {
+    return { ok: true as const, alreadyActive: true, region: id };
+  }
+  setActiveSnapshot(def.snapshot as SnapshotShape);
+  const now = new Date().toISOString();
+  patchState({
+    region: id,
+    mission: def.mission,
+    constraints: def.constraints,
+    map: {
+      ...getState().map,
+      center: def.mapCenter,
+      zoom: def.mapZoom,
+      tiles: getState().map.tiles,
+      tilesNote: getState().map.tilesNote,
+    },
+    candidates: [],
+    rankingMeta: {
+      computedAt: null,
+      recipe: "",
+      weights: {},
+      droppedFactors: [],
+      ndviIncluded: false,
+      note: `Region switched to ${def.state}. Analysis has not been run in this region.`,
+    },
+    scenario: "base",
+    scenarioPreview: null,
+    selection: null,
+    drawMode: "idle",
+    openEvidenceDistrictId: null,
+    highlightedUncertainty: [],
+    corrections: [],
+    groundChecks: [],
+    approval: null,
+    ndvi: {},
+    ndviGap: { reason: `Earth Engine has not been queried for ${def.state}.` },
+    analysisStatus: "idle",
+    view: "desk",
+    timeline: [
+      {
+        id: `t-${Date.now()}`,
+        at: now,
+        kind: "region",
+        text: `Region switched to ${def.state}: ${def.mission.title}. ${def.note}`,
+      },
+    ],
+  });
+  return {
+    ok: true as const,
+    region: id,
+    state: def.state,
+    districts: Object.keys(def.snapshot.districts).length,
+    note: def.note,
+    nextStep: "Call show_candidates to rank this region, or open a district's evidence.",
+  };
 }
 
 export function selectDistrict(districtId: string) {
@@ -699,6 +806,21 @@ export function send_ground_check(input: {
   };
 }
 
+// Read direction from the officer's words instead of assuming "seasonal".
+// Conservative default: unverified evidence stays penalized (seasonal).
+function irrigationValueFromAnswer(answer: string): "seasonal" | "year-round" {
+  const a = answer.toLowerCase();
+  if (
+    /year[- ]round|perennial|through september|all year|never dries|always flows/.test(a)
+  ) {
+    return "year-round";
+  }
+  if (/dry|dries|seasonal|monsoon|wells|not through|intermittent/.test(a)) {
+    return "seasonal";
+  }
+  return "seasonal";
+}
+
 export function approve_evidence(input: { checkId?: string } = {}) {
   const supplied = input.checkId !== undefined && input.checkId !== null;
   if (supplied) {
@@ -756,22 +878,54 @@ function finishApprove(check: GroundCheck) {
       error: "No field reply yet. GroundCheck does not invent a photo, GPS, or answer. If the store is down, this stays a gap.",
     };
   }
+  const s = getState();
+  const currentClass = irrigationFor(check.districtId, s.corrections).class;
+  const value = irrigationValueFromAnswer(check.reply.answer);
+  const target = irrigationClassFromValue(value);
+  let correction: Correction | undefined;
+  let leader: { name: string; rank: number; score: string } | null | undefined;
+  let alreadyConsistent = false;
+  if (currentClass !== target) {
+    const res = apply_correction({
+      district: check.districtId,
+      value,
+      note: `Field evidence (approved by Human): "${check.reply.answer}" — ${check.reply.store === "sidecar" ? "sidecar reply" : "browser reply"}`,
+      evidenceSource: {
+        name: "Field officer reply (human-approved)",
+        note: `Quote: "${check.reply.answer}" · ${check.reply.store}. Reply carries photo + GPS where captured.`,
+      },
+    });
+    if (res.ok) {
+      correction = res.correction;
+      leader = res.leader;
+    } else if (typeof res.error === "string" && /no-op/i.test(res.error)) {
+      alreadyConsistent = true;
+    } else {
+      // Round-trip a failure as an approve error rather than half-approving.
+      return { ok: false as const, error: res.error ?? "Approval failed before field evidence was marked approved." };
+    }
+  } else {
+    alreadyConsistent = true;
+  }
   const next: GroundCheck = {
     ...check,
     status: "approved",
     approvedAt: new Date().toISOString(),
     approvedBy: "Human (this tab)",
   };
-  const s = getState();
-  const inDesk = s.groundChecks.some((c) => c.id === check.id);
+  const s2 = getState();
+  const inDesk = s2.groundChecks.some((c) => c.id === check.id);
   patchState({
     groundChecks: inDesk
-      ? s.groundChecks.map((c) => (c.id === check.id ? next : c))
-      : [...s.groundChecks, next],
+      ? s2.groundChecks.map((c) => (c.id === check.id ? next : c))
+      : [...s2.groundChecks, next],
   });
   writeStoredCheck(next);
-  pushTimeline("approve_evidence", `Approved field evidence for ${check.districtName}.`);
-  return { ok: true as const, check: next };
+  pushTimeline(
+    "approve_evidence",
+    `Approved field evidence for ${check.districtName}. ${correction ? `Irrigation correction applied: ${correction.from} → ${correction.to}.` : alreadyConsistent ? "Reply already matched the current irrigation class; no re-rank needed." : ""}`,
+  );
+  return { ok: true as const, check: next, correction, leader, alreadyConsistent };
 }
 
 export function submit_field_reply(input: {
@@ -902,7 +1056,9 @@ export const commands = {
   commit_preview,
   export_decision,
   send_ground_check,
+  get_ground_checks,
   approve_evidence,
+  set_region,
   selectDistrict,
   runAnalysis,
   approveDecision,

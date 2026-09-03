@@ -4,6 +4,7 @@ import "leaflet/dist/leaflet.css";
 import { cancelDraw, selectDistrict, setDrawnSelection, setMapView } from "../lib/commands";
 import { choroplethMode, districtFill, rankColor } from "../lib/format";
 import { SNAPSHOT } from "../lib/rank";
+import { REGIONS } from "../data/regions";
 import { getState } from "../lib/store";
 import { OSM_ATTR, OSM_TILE_URL, resolveTileHealth, tileUrlForRoads } from "../lib/tiles";
 import { useWorkspace } from "../lib/useWorkspace";
@@ -67,6 +68,18 @@ export function MapCanvas() {
       tilesRef.current = null;
     };
   }, []);
+
+  // When the region changes, move the real Leaflet view to the new region's
+  // home center/zoom. State alone (ws.map) is patched by set_region, but the
+  // map object keeps its old view unless we call setView.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const def = REGIONS[ws.region];
+    map.setView(def.mapCenter, def.mapZoom, { animate: false });
+    setMapView({ center: def.mapCenter, zoom: def.mapZoom });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ws.region]);
 
   useEffect(() => {
     const map = mapRef.current;

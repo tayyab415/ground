@@ -10,10 +10,13 @@ import {
   get_open_evidence,
   get_unsaved_changes,
   get_workspace_state,
+  get_visible_map_state,
   highlight_uncertainty,
   open_evidence,
   preview_scenario,
   selectDistrict,
+  set_region,
+  get_ground_checks,
   send_ground_check,
   setDrawnSelection,
   show_candidates,
@@ -21,13 +24,18 @@ import {
   load_field_check,
 } from "./commands";
 import { fieldCaptureAllowed, writeStoredCheck } from "./fieldStore";
-import { buildEvidence, rankDistricts, SNAPSHOT } from "./rank";
+import { buildEvidence, rankDistricts, SNAPSHOT, setActiveSnapshot } from "./rank";
 import { emptyWorkspace, getState, patchState, replaceState } from "./store";
 import { WEBMCP_TOOLS } from "./webmcp";
+import { REGIONS } from "../data/regions";
+import { SnapshotShape } from "../data/regions";
 
 afterEach(() => {
   replaceState(emptyWorkspace());
   localStorage.clear();
+  // set_region mutates the module-level active snapshot; reset it so later
+  // tests keep seeing the UP candidate pool.
+  setActiveSnapshot(REGIONS.up.snapshot as SnapshotShape);
 });
 
 describe("honesty", () => {
@@ -180,7 +188,9 @@ describe("workspace commands", () => {
       "highlight_uncertainty",
       "preview_scenario",
       "apply_correction",
+      "set_region",
       "export_decision",
+      "get_ground_checks",
       "send_ground_check",
       "approve_evidence",
     ]);
@@ -638,3 +648,105 @@ describe("GroundCheck", () => {
   });
 });
 
+
+describe("regions", () => {
+  it("reports the active region and supported regions from workspace state", () => {
+    const state = get_workspace_state();
+    expect(state.region).toBe("up");
+    expect(state.supportedRegions.map((r) => r.id)).toEqual(["up", "maharashtra", "us"]);
+    expect(state.supportedRegions.find((r) => r.id === "maharashtra")?.state).toBe("Maharashtra");
+  });
+
+  it("set_region switches mission, constraints, snapshot, and map center", async () => {
+    await show_candidates();
+    const before = get_workspace_state();
+    expect(before.candidates.length).toBeGreaterThan(0);
+    const res = set_region({ region: "maharashtra" });
+    expect(res.ok).toBe(true);
+    const state = get_workspace_state();
+    expect(state.region).toBe("maharashtra");
+    expect(state.mission.region).toMatch(/Maharashtra/);
+    expect(state.candidates).toHaveLength(0);
+    expect(state.unsavedChanges.corrections).toHaveLength(0);
+    expect(get_visible_map_state().center[0]).toBeCloseTo(20.4, 1);
+    expect(get_open_evidence()).toMatchObject({});
+    // snapshot switched: a Maharashtra district resolves, an UP one does not.
+  });
+
+  it("set_region makes the active snapshot region-specific for lookups", () => {
+    set_region({ region: "us" });
+    const usState = get_workspace_state();
+    expect(usState.region).toBe("us");
+    expect(usState.mission.region).toMatch(/Mississippi Delta/);
+    expect(get_visible_map_state().center[1]).toBeCloseTo(-90.66, 1);
+  });
+
+  it("set_region on the active region with ranking is a no-op acknowledgement", async () => {
+    await show_candidates();
+    const res = set_region({ region: "up" });
+    expect(res.ok).toBe(true);
+    if (res.ok && "alreadyActive" in res) {
+      expect(res.alreadyActive).toBe(true);
+    }
+    expect(get_workspace_state().candidates.length).toBeGreaterThan(0);
+  });
+
+  it("set_region rejects unknown regions", () => {
+    const res = set_region({ region: "karnataka" });
+    expect(res.ok).toBe(false);
+  });
+
+  it("approve_evidence parses the officer's answer into an irrigation correction", () => {
+    const sent = send_ground_check({ district: "kushinagar", question: "Is the canal year-round?" });
+    expect(sent.ok).toBe(true);
+    if (!sent.ok) throw new Error("expected send");
+    const replied = submit_field_reply({
+      checkId: sent.check.id,
+      answer: "Year-round, the canal never dries through September.",
+      photoDataUrl: "data:image/jpeg;base64,/9j/bbbb",
+      gps: { lat: 26.9, lon: 83.9, accuracyM: 10 },
+      capturedAt: "2026-09-01T10:00:00Z",
+    });
+    expect(replied.ok).toBe(true);
+    const approved = approve_evidence({ checkId: sent.check.id });
+    expect(approved.ok).toBe(true);
+    if (!approved.ok) throw new Error("expected approve");
+    expect(approved.check.status).toBe("approved");
+    expect(approved.correction?.to).toBe("perennial_canal_assumed");
+    expect(approved.correction?.evidenceSource?.name).toMatch(/Field officer/);
+    const corr = getState().corrections.find((c) => c.districtId === "kushinagar");
+    expect(corr?.to).toBe("perennial_canal_assumed");
+    expect(get_workspace_state().unsavedChanges.corrections.at(-1)?.evidenceSource).toBeTruthy();
+  });
+
+  it("approve_evidence with a matching answer does not invent a no-op correction", () => {
+    const sent = send_ground_check({ district: "kushinagar", question: "Is the canal seasonal?" });
+    expect(sent.ok).toBe(true);
+    if (!sent.ok) throw new Error("expected send");
+    const replied = submit_field_reply({
+      checkId: sent.check.id,
+      answer: "Seasonal, the canal dries in the hot months.",
+      photoDataUrl: "data:image/jpeg;base64,/9j/cccc",
+      capturedAt: "2026-09-01T11:00:00Z",
+    });
+    expect(replied.ok).toBe(true);
+    const approved = approve_evidence({ checkId: sent.check.id });
+    expect(approved.ok).toBe(true);
+    if (!approved.ok) throw new Error("expected approve");
+    expect(approved.alreadyConsistent).toBe(true);
+    expect(approved.correction).toBeUndefined();
+    const added = getState().corrections.filter((c) => c.districtId === "kushinagar");
+    // Kushinagar is already seasonal_canal and the reply agrees: no new correction.
+    expect(added.filter((c) => c.evidenceSource)).toHaveLength(0);
+  });
+
+  it("get_ground_checks lists checks and approved ids", () => {
+    const sent = send_ground_check({ district: "gorakhpur", question: "Canal status?" });
+    expect(sent.ok).toBe(true);
+    if (!sent.ok) throw new Error("expected send");
+    const listed = get_ground_checks();
+    expect(listed.checks.some((c) => c.id === sent.check.id)).toBe(true);
+    expect(listed.approvedReplyIds).toHaveLength(0);
+    expect(listed.note).toMatch(/no invented replies/i);
+  });
+});
