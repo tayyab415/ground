@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { apply_correction, get_open_evidence, get_unsaved_changes, get_workspace_state, show_candidates } from "./commands";
 import { emptyWorkspace, getState, replaceState, subscribe } from "./store";
-import { executeRegisteredTool, normalizeToolInput, registerWebMcpTools, WEBMCP_TOOLS } from "./webmcp";
+import { executeRegisteredTool, normalizeToolInput, registerWebMcpTools, WEBMCP_TOOLS, canalValueFrom } from "./webmcp";
 
 afterEach(() => replaceState(emptyWorkspace()));
 
@@ -167,5 +167,71 @@ describe("User Prompt execute wrappers share the UI store", () => {
     };
     expect(denied.ok).toBe(false);
     expect(String(denied.error)).toMatch(/will not fall back/i);
+  });
+
+  it("does not treat negated seasonal prose as a seasonal canal correction", async () => {
+    expect(canalValueFrom({ value: "seasonal" })).toBe("seasonal");
+    expect(canalValueFrom({ value: "perennial" })).toBe("year-round");
+    expect(canalValueFrom({ value: "not seasonal; perennial" })).toBe("year-round");
+    expect(canalValueFrom({ value: "perennial, not seasonal" })).toBe("year-round");
+    expect(canalValueFrom({ value: "year-round (not seasonal)" })).toBe("year-round");
+    expect(canalValueFrom({ value: "not seasonal; year-round" })).toBe("year-round");
+    expect(canalValueFrom({ value: "not seasonal" })).toBe("year-round");
+    expect(canalValueFrom({ value: "The canal here is seasonal, not year-round." })).toBe("seasonal");
+
+    const bound: Record<string, (input?: unknown, options?: unknown) => Promise<unknown>> = {};
+    Object.defineProperty(document, "modelContext", {
+      value: {
+        registerTool: async (tool: {
+          name: string;
+          execute: (input?: unknown, options?: unknown) => Promise<unknown>;
+        }) => {
+          bound[tool.name] = tool.execute;
+        },
+      },
+      configurable: true,
+    });
+    await registerWebMcpTools();
+    await bound.show_candidates!({});
+
+    const gBefore = getState().candidates.find((c) => c.districtId === "gorakhpur");
+    expect(gBefore?.rank).toBe(1);
+    const gNoop = (await bound.apply_correction!({
+      district: "gorakhpur",
+      value: "not seasonal; perennial",
+    })) as { ok?: boolean; error?: string };
+    expect(gNoop.ok).toBe(false);
+    expect(String(gNoop.error)).toMatch(/no-op/i);
+    expect(getState().candidates.find((c) => c.districtId === "gorakhpur")?.rank).toBe(1);
+    expect(get_unsaved_changes().corrections).toEqual([]);
+
+    const mixed = [
+      "not seasonal; perennial",
+      "perennial, not seasonal",
+      "year-round (not seasonal)",
+      "not seasonal; year-round",
+    ];
+    for (const value of mixed) {
+      replaceState(emptyWorkspace());
+      await bound.show_candidates!({});
+      const balliaBefore = getState().candidates.find((c) => c.districtId === "ballia")?.rank;
+      const applied = (await bound.apply_correction!({
+        district: "ballia",
+        fact: "canal_irrigation",
+        value,
+      })) as { ok?: boolean };
+      expect(applied.ok, value).toBe(true);
+      const corr = get_unsaved_changes().corrections.at(-1);
+      expect(corr?.to, value).toBe("perennial_canal_assumed");
+      expect(corr?.to, value).not.toBe("seasonal_canal");
+      const irrig = getState()
+        .candidates.find((c) => c.districtId === "ballia")
+        ?.evidence.find((e) => e.id === "irrigation");
+      expect(irrig?.status, value).toBe("corrected");
+      expect(String(irrig?.display).toLowerCase(), value).toMatch(/year-round/);
+      expect(String(irrig?.display).toLowerCase(), value).not.toMatch(/seasonal canal/);
+      expect(getState().candidates.find((c) => c.districtId === "ballia")?.rank).not.toBeUndefined();
+      expect(balliaBefore).toBeDefined();
+    }
   });
 });
