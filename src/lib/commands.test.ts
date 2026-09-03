@@ -210,7 +210,7 @@ describe("workspace commands", () => {
     expect(unsaved.corrections[0]?.committed).toBe(false);
     const tool = WEBMCP_TOOLS.find((t) => t.name === "get_unsaved_changes");
     expect(tool?.annotations?.readOnlyHint).toBe(true);
-    const viaTool = tool!.execute({});
+    const viaTool = await tool!.execute({});
     expect(viaTool).toEqual(unsaved);
   });
 
@@ -252,6 +252,9 @@ describe("workspace commands", () => {
     expect(String(unknown.error)).toMatch(/unknown district/i);
     expect(get_workspace_state().unsavedChanges.corrections.length).toBe(0);
     expect(get_workspace_state().unsavedChanges.selection?.districtId).toBe("ballia");
+    const labeled = apply_correction({ district: "Gorakhpur District", value: "seasonal" });
+    expect(labeled.ok).toBe(true);
+    expect(getState().openEvidenceDistrictId).toBe("gorakhpur");
   });
 
   it("does not default preview_scenario to a seasonal Gorakhpur canal", async () => {
@@ -553,7 +556,7 @@ describe("GroundCheck", () => {
     );
   });
 
-  it("does not treat whitespace-only checkId as omitted fallback", () => {
+  it("does not treat whitespace-only checkId as omitted fallback", async () => {
     const live = send_ground_check({ district: "ballia", question: "Any standing water?" });
     expect(live.ok).toBe(true);
     if (!live.ok) throw new Error("expected send");
@@ -570,9 +573,9 @@ describe("GroundCheck", () => {
     expect(String(blank.error)).toMatch(/empty/i);
     expect(String(blank.error)).toMatch(/will not fall back/i);
     expect(getState().groundChecks.find((c) => c.id === live.check.id)?.status).toBe("replied");
-    const viaTool = WEBMCP_TOOLS.find((t) => t.name === "approve_evidence")!.execute({
+    const viaTool = (await WEBMCP_TOOLS.find((t) => t.name === "approve_evidence")!.execute({
       checkId: "\t  ",
-    }) as { ok: boolean; error?: string };
+    })) as { ok: boolean; error?: string };
     expect(viaTool.ok).toBe(false);
     expect(String(viaTool.error)).toMatch(/empty/i);
     expect(getState().groundChecks.find((c) => c.id === live.check.id)?.status).toBe("replied");
@@ -603,18 +606,18 @@ describe("GroundCheck", () => {
     expect(getState().groundChecks.find((c) => c.id === sent.check.id)?.status).toBe("approved");
   });
 
-  it("WebMCP GroundCheck tools call the same commands as the UI", () => {
+  it("WebMCP GroundCheck tools call the same commands as the UI", async () => {
     const sendTool = WEBMCP_TOOLS.find((t) => t.name === "send_ground_check");
     const approveTool = WEBMCP_TOOLS.find((t) => t.name === "approve_evidence");
     expect(sendTool).toBeTruthy();
     expect(approveTool).toBeTruthy();
-    const sent = sendTool!.execute({ district: "ballia", question: "Any standing water?" }) as {
+    const sent = (await sendTool!.execute({ district: "ballia", question: "Any standing water?" })) as {
       ok: boolean;
       check?: { id: string; reply: null };
     };
     expect(sent.ok).toBe(true);
     expect(sent.check?.reply).toBeNull();
-    const denied = approveTool!.execute({ checkId: sent.check?.id }) as { ok: boolean };
+    const denied = (await approveTool!.execute({ checkId: sent.check?.id })) as { ok: boolean };
     expect(denied.ok).toBe(false);
   });
 

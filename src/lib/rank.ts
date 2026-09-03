@@ -116,12 +116,16 @@ function clamp(n: number, a: number, b: number) {
 export function lookupDistrictId(q: string): string | null {
   const trimmed = q.trim();
   if (!trimmed) return null;
-  const key = trimmed.toLowerCase().replace(/\s+/g, "-");
-  if (SNAPSHOT.districts[key]) return key;
-  const found = Object.values(SNAPSHOT.districts).find(
-    (d) => d.id === key || d.name.toLowerCase() === trimmed.toLowerCase(),
-  );
-  return found?.id ?? null;
+  const attempts = [trimmed, trimmed.replace(/\s+districts?$/i, "").trim()].filter(Boolean);
+  for (const attempt of attempts) {
+    const key = attempt.toLowerCase().replace(/\s+/g, "-");
+    if (SNAPSHOT.districts[key]) return key;
+    const found = Object.values(SNAPSHOT.districts).find(
+      (d) => d.id === key || d.name.toLowerCase() === attempt.toLowerCase(),
+    );
+    if (found) return found.id;
+  }
+  return null;
 }
 
 export function irrigationFor(

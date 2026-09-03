@@ -105,9 +105,13 @@ export function subscribe(listener: () => void): () => void {
   return () => listeners.delete(listener);
 }
 
+export function notifyListeners() {
+  for (const l of listeners) l();
+}
+
 export function replaceState(next: Workspace) {
   state = next;
-  for (const l of listeners) l();
+  notifyListeners();
 }
 
 export function patchState(partial: Partial<Workspace>) {
