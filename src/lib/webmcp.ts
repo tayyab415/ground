@@ -161,28 +161,50 @@ function mentionIsNegated(text: string, matchIndex: number): boolean {
   );
 }
 
-function eachPhraseMatch(text: string, phrase: string, onMatch: (index: number) => boolean): boolean {
+const CANAL_CLASS_RE = "(?:year\\s*round|yearround|perennial|seasonal)";
+const NEGATION_RE = "(?:not|no|non|never|isn't|isnt|ain't|aint|neither)";
+
+/** `seasonal? no, perennial` denies seasonal; `seasonal, not year-round` does not. */
+function trailingShortDenial(text: string, matchIndex: number, phraseLen: number): boolean {
+  const after = text.slice(matchIndex + phraseLen);
+  const m = after.match(new RegExp(`^\\s*[?.,:;!)"']*\\s*${NEGATION_RE}\\b([\\s\\S]*)$`, "i"));
+  if (!m) return false;
+  const rest = (m[1] ?? "").replace(/^\s+/, "");
+  if (new RegExp(`^(?:an?\\s+|the\\s+)?${CANAL_CLASS_RE}\\b`, "i").test(rest)) return false;
+  return true;
+}
+
+function mentionIsDenied(text: string, matchIndex: number, phraseLen: number): boolean {
+  return mentionIsNegated(text, matchIndex) || trailingShortDenial(text, matchIndex, phraseLen);
+}
+
+function eachPhraseMatch(
+  text: string,
+  phrase: string,
+  onMatch: (index: number, length: number) => boolean,
+): boolean {
   const escaped = phrase.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const re = new RegExp(`\\b${escaped}\\b`, "g");
   let match: RegExpExecArray | null;
   while ((match = re.exec(text)) !== null) {
-    if (onMatch(match.index)) return true;
+    if (onMatch(match.index, match[0].length)) return true;
   }
   return false;
 }
 
 function hasPositivePhrase(text: string, phrase: string): boolean {
-  return eachPhraseMatch(text, phrase, (index) => !mentionIsNegated(text, index));
+  return eachPhraseMatch(text, phrase, (index, length) => !mentionIsDenied(text, index, length));
 }
 
 function hasNegatedPhrase(text: string, phrase: string): boolean {
-  return eachPhraseMatch(text, phrase, (index) => mentionIsNegated(text, index));
+  return eachPhraseMatch(text, phrase, (index, length) => mentionIsDenied(text, index, length));
 }
 
 /**
- * Map inspector/Gemini canal values. Exact aliases first. A `seasonal`
- * substring does not win over a stated perennial/year-round value, and
- * negated seasonal prose (`not seasonal; perennial`) is year-round.
+ * Map inspector/Gemini canal values. Exact aliases first. Prefix negation
+ * (`not seasonal; perennial`) and trailing short denials (`seasonal? no, perennial`)
+ * are year-round. Unclassified mixed prose returns undefined so the host
+ * wrapper can reject before apply_correction defaults to seasonal.
  */
 export function canalValueFrom(input: Record<string, unknown>): "seasonal" | "year-round" | undefined {
   const raw = stringField(input, "value", "irrigation", "canal", "to");
@@ -213,6 +235,21 @@ export function canalValueFrom(input: Record<string, unknown>): "seasonal" | "ye
     return "seasonal";
   }
   return undefined;
+}
+
+function classifiedCanalValue(
+  input: Record<string, unknown>,
+): { ok: true; value?: "seasonal" | "year-round" } | { ok: false; error: string } {
+  const raw = stringField(input, "value", "irrigation", "canal", "to");
+  const value = canalValueFrom(input);
+  if (raw && value == null) {
+    return {
+      ok: false,
+      error:
+        "Could not classify canal correction as seasonal or year-round. Ambiguous prose was not applied.",
+    };
+  }
+  return { ok: true, value };
 }
 
 function canalFactFrom(input: Record<string, unknown>): "canal_irrigation" | undefined {
@@ -250,20 +287,26 @@ const runners: Record<string, ToolRunner> = {
     }),
   open_evidence: (input) => open_evidence({ district: String(districtFrom(input) ?? "") }),
   highlight_uncertainty: (input) => highlight_uncertainty({ on: input.on === false ? false : true }),
-  preview_scenario: (input) =>
-    preview_scenario({
+  preview_scenario: (input) => {
+    const classified = classifiedCanalValue(input);
+    if (!classified.ok) return classified;
+    return preview_scenario({
       district: districtFrom(input),
       fact: canalFactFrom(input),
-      value: canalValueFrom(input),
+      value: classified.value,
       scenario: scenarioFrom(input),
-    }),
-  apply_correction: (input) =>
-    apply_correction({
+    });
+  },
+  apply_correction: (input) => {
+    const classified = classifiedCanalValue(input);
+    if (!classified.ok) return classified;
+    return apply_correction({
       district: districtFrom(input),
       fact: canalFactFrom(input),
-      value: canalValueFrom(input),
+      value: classified.value,
       note: stringField(input, "note"),
-    }),
+    });
+  },
   export_decision: (input) => export_decision({ download: input.download === false ? false : true }),
   send_ground_check: (input) =>
     send_ground_check({
