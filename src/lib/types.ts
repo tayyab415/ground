@@ -81,12 +81,44 @@ export type RankingMeta = {
   note: string;
 };
 
+export type DrawMode = "idle" | "polygon" | "lasso";
+
 export type Selection = {
-  kind: "district";
-  districtId: string;
+  kind: "district" | "polygon" | "lasso" | "point";
+  districtId?: string;
   name: string;
-  polygon: GeoJSON.Geometry;
+  polygon?: GeoJSON.Geometry;
+  point?: { lat: number; lon: number };
+  vertexCount?: number;
   saved: false;
+};
+
+export type GroundCheckReply = {
+  answer: string;
+  photoDataUrl: string | null;
+  gps: { lat: number; lon: number; accuracyM?: number } | null;
+  gpsGap?: string;
+  capturedAt: string;
+  receivedAt: string;
+  store: "sidecar" | "browser";
+};
+
+export type GroundCheckStatus = "created" | "sent" | "awaiting" | "replied" | "approved" | "gap";
+
+export type GroundCheck = {
+  id: string;
+  districtId: string;
+  districtName: string;
+  question: string;
+  location: { lat: number; lon: number };
+  dueAt: string;
+  createdAt: string;
+  status: GroundCheckStatus;
+  fieldPath: string;
+  deliveryGap?: string;
+  reply: GroundCheckReply | null;
+  approvedAt?: string;
+  approvedBy?: string;
 };
 
 export type Constraints = {
@@ -123,6 +155,7 @@ export type Approval = {
 export type ScenarioPreview = {
   label: string;
   scenario: ScenarioId;
+  scenarioExplicit: boolean;
   correction?: Correction;
   before: { districtId: string; rank: number; score: number }[];
   after: { districtId: string; rank: number; score: number }[];
@@ -153,12 +186,14 @@ export type Workspace = {
   layers: Record<LayerId, boolean>;
   scenario: ScenarioId;
   selection: Selection | null;
+  drawMode: DrawMode;
   candidates: Candidate[];
   rankingMeta: RankingMeta;
   openEvidenceDistrictId: string | null;
   highlightedUncertainty: string[];
   scenarioPreview: ScenarioPreview | null;
   corrections: Correction[];
+  groundChecks: GroundCheck[];
   timeline: TimelineEvent[];
   approval: Approval | null;
   view: "desk" | "decision";
@@ -198,6 +233,7 @@ export type DecisionRecord = {
   };
   sources: SourceRef[];
   corrections: Correction[];
+  groundChecks: GroundCheck[];
   approvals: Approval[];
   gaps: string[];
   reproducibilityHash: string;

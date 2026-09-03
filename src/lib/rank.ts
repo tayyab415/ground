@@ -175,7 +175,7 @@ export function buildEvidence(
       id: "ndvi",
       label: "Crop health (NDVI)",
       value: ndvi.value,
-      display: ndvi.value.toFixed(2),
+      display: ndvi.value.toFixed(3),
       status: "ok",
       score: clamp((ndvi.value + 0.2) / 0.9, 0, 1),
       usedInRanking: true,

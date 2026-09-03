@@ -1,5 +1,6 @@
 import {
   apply_correction,
+  approve_evidence,
   export_decision,
   get_current_selection,
   get_open_evidence,
@@ -9,6 +10,7 @@ import {
   highlight_uncertainty,
   open_evidence,
   preview_scenario,
+  send_ground_check,
   show_candidates,
 } from "./commands";
 import { patchState } from "./store";
@@ -44,7 +46,7 @@ export const WEBMCP_TOOLS: ToolSpec[] = [
   {
     name: "get_current_selection",
     description:
-      "Return the district/polygon the human currently has selected. The selection is unsaved and only exists in this tab.",
+      "Return the district, polygon, lasso, or point the human currently has selected. The selection is unsaved and only exists in this tab — not a server roundtrip.",
     inputSchema: emptyObject,
     annotations: { readOnlyHint: true },
     execute: () => get_current_selection(),
@@ -180,6 +182,48 @@ export const WEBMCP_TOOLS: ToolSpec[] = [
       additionalProperties: false,
     },
     execute: (input) => export_decision({ download: input.download === false ? false : true }),
+  },
+  {
+    name: "send_ground_check",
+    description:
+      "Create a GroundCheck for a field officer: one question, one location, photo + short answer, due date. Same as the Send GroundCheck control. Does not invent a reply. If the reply store is down, the check is a gap.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        district: { type: "string", description: "District name or id. Defaults to current selection." },
+        question: { type: "string", description: "One precise question for the officer." },
+        dueDays: { type: "number", description: "Days until due (default 7)." },
+      },
+      additionalProperties: false,
+    },
+    execute: (input) =>
+      send_ground_check({
+        district: input.district ? String(input.district) : undefined,
+        question: input.question ? String(input.question) : undefined,
+        dueDays: typeof input.dueDays === "number" ? input.dueDays : undefined,
+      }),
+  },
+  {
+    name: "approve_evidence",
+    description:
+      "Mark a field GroundCheck reply as verified evidence. Same as Approve evidence in the UI. Fails if no real reply exists — never fakes a field photo, GPS, or answer.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        checkId: {
+          type: "string",
+          description:
+            "GroundCheck id. If supplied (including whitespace-only), missing/empty is an error — no fallback. Omit to approve the latest replied check in this tab or its same-tab localStorage store.",
+        },
+      },
+      additionalProperties: false,
+    },
+    execute: (input) => {
+      if (!("checkId" in input) || input.checkId === undefined || input.checkId === null) {
+        return approve_evidence({});
+      }
+      return approve_evidence({ checkId: String(input.checkId) });
+    },
   },
 ];
 
