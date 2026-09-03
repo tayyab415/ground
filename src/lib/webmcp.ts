@@ -154,20 +154,63 @@ function districtFrom(input: Record<string, unknown>): string | undefined {
   return undefined;
 }
 
-function canalValueFrom(input: Record<string, unknown>): "seasonal" | "year-round" | undefined {
+function mentionIsNegated(text: string, matchIndex: number): boolean {
+  const before = text.slice(0, matchIndex);
+  return /(?:^|[^a-z])(?:not|no|non|never|isn't|isnt|ain't|aint|neither)\s+(?:an?\s+|the\s+)?$/i.test(
+    before,
+  );
+}
+
+function eachPhraseMatch(text: string, phrase: string, onMatch: (index: number) => boolean): boolean {
+  const escaped = phrase.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const re = new RegExp(`\\b${escaped}\\b`, "g");
+  let match: RegExpExecArray | null;
+  while ((match = re.exec(text)) !== null) {
+    if (onMatch(match.index)) return true;
+  }
+  return false;
+}
+
+function hasPositivePhrase(text: string, phrase: string): boolean {
+  return eachPhraseMatch(text, phrase, (index) => !mentionIsNegated(text, index));
+}
+
+function hasNegatedPhrase(text: string, phrase: string): boolean {
+  return eachPhraseMatch(text, phrase, (index) => mentionIsNegated(text, index));
+}
+
+/**
+ * Map inspector/Gemini canal values. Exact aliases first. A `seasonal`
+ * substring does not win over a stated perennial/year-round value, and
+ * negated seasonal prose (`not seasonal; perennial`) is year-round.
+ */
+export function canalValueFrom(input: Record<string, unknown>): "seasonal" | "year-round" | undefined {
   const raw = stringField(input, "value", "irrigation", "canal", "to");
   if (!raw) return undefined;
   const n = raw.toLowerCase().replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
-  if (n === "seasonal" || n === "seasonal canal" || n.includes("seasonal")) return "seasonal";
+  if (n === "seasonal" || n === "seasonal canal") return "seasonal";
   if (
     n === "year round" ||
     n === "yearround" ||
     n === "perennial" ||
     n === "perennial canal assumed" ||
-    n.includes("year round") ||
-    n.includes("perennial")
+    n === "year round canal"
   ) {
     return "year-round";
+  }
+  const seasonal = hasPositivePhrase(n, "seasonal");
+  const yearRound =
+    hasPositivePhrase(n, "perennial") ||
+    hasPositivePhrase(n, "year round") ||
+    hasPositivePhrase(n, "yearround");
+  if (yearRound && !seasonal) return "year-round";
+  if (seasonal && !yearRound) return "seasonal";
+  if (!seasonal && hasNegatedPhrase(n, "seasonal")) return "year-round";
+  if (
+    !yearRound &&
+    (hasNegatedPhrase(n, "perennial") || hasNegatedPhrase(n, "year round") || hasNegatedPhrase(n, "yearround"))
+  ) {
+    return "seasonal";
   }
   return undefined;
 }
