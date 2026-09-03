@@ -1,6 +1,9 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   apply_correction,
+  approve_evidence,
+  approveDecision,
+  chooseScenario,
   commit_preview,
   export_decision,
   get_current_selection,
@@ -11,14 +14,20 @@ import {
   open_evidence,
   preview_scenario,
   selectDistrict,
+  send_ground_check,
+  setDrawnSelection,
   show_candidates,
+  submit_field_reply,
+  load_field_check,
 } from "./commands";
+import { fieldCaptureAllowed, writeStoredCheck } from "./fieldStore";
 import { buildEvidence, rankDistricts, SNAPSHOT } from "./rank";
-import { emptyWorkspace, getState, replaceState } from "./store";
+import { emptyWorkspace, getState, patchState, replaceState } from "./store";
 import { WEBMCP_TOOLS } from "./webmcp";
 
 afterEach(() => {
   replaceState(emptyWorkspace());
+  localStorage.clear();
 });
 
 describe("honesty", () => {
@@ -172,6 +181,8 @@ describe("workspace commands", () => {
       "preview_scenario",
       "apply_correction",
       "export_decision",
+      "send_ground_check",
+      "approve_evidence",
     ]);
   });
 
@@ -220,7 +231,17 @@ describe("workspace commands", () => {
     expect(record.corrections.length).toBeGreaterThan(0);
     expect(record.gaps.some((g) => g.toLowerCase().includes("ndvi"))).toBe(true);
     expect(record.sources.some((s) => s.name.includes("SoilGrids"))).toBe(true);
-    expect(record.ranking.candidates[0]?.evidence.find((e) => e.id === "ndvi")?.status).toBe("gap");
+    const gNdvi = record.ranking.candidates
+      .find((c) => c.districtId === "gorakhpur")
+      ?.evidence.find((e) => e.id === "ndvi");
+    expect(gNdvi?.status).toBe("ok");
+    expect(gNdvi?.value).toBe(0.534);
+    expect(gNdvi?.usedInRanking).toBe(false);
+    const aNdvi = record.ranking.candidates
+      .find((c) => c.districtId === "ambedkar-nagar")
+      ?.evidence.find((e) => e.id === "ndvi");
+    expect(aNdvi?.status).toBe("gap");
+    expect(aNdvi?.value).toBeNull();
   });
 
   it("resolves apply_correction against SNAPSHOT and errors on unknown districts", async () => {
@@ -338,4 +359,279 @@ describe("workspace commands", () => {
     }));
     expect(live).toEqual(expected);
   });
+
+  it("commit_preview on a correction-only preview does not restore a stale scenario", async () => {
+    await show_candidates();
+    chooseScenario("low_risk");
+    const preview = preview_scenario({
+      district: "gorakhpur",
+      fact: "canal_irrigation",
+      value: "seasonal",
+    });
+    expect(preview.ok).toBe(true);
+    if ("preview" in preview && preview.preview) {
+      expect(preview.preview.scenarioExplicit).toBe(false);
+      expect(preview.preview.scenario).toBe("low_risk");
+    }
+    patchState({ scenario: "high_investment" });
+    const committed = commit_preview();
+    expect(committed.ok).toBe(true);
+    expect(getState().scenario).toBe("high_investment");
+    expect(getState().scenario).not.toBe("low_risk");
+    const irrig = getState().candidates.find((c) => c.districtId === "gorakhpur")?.evidence.find(
+      (e) => e.id === "irrigation",
+    );
+    expect(irrig?.status).toBe("corrected");
+  });
+
+  it("changing scenario clears a prior approval so export cannot look approved", async () => {
+    await show_candidates();
+    const approved = approveDecision({ district: "gorakhpur" });
+    expect(approved.ok).toBe(true);
+    const before = await export_decision({ download: false });
+    expect(before.finalChoice.approved).toBe(true);
+    chooseScenario("low_risk");
+    expect(getState().approval).toBeNull();
+    const after = await export_decision({ download: false });
+    expect(after.finalChoice.approved).toBe(false);
+    expect(after.approvals).toEqual([]);
+  });
+
+  it("reads unsaved lasso/polygon selection without a server roundtrip", () => {
+    const drawn = setDrawnSelection({
+      kind: "lasso",
+      coordinates: [
+        [83.1, 26.6],
+        [83.4, 26.6],
+        [83.4, 26.9],
+        [83.1, 26.9],
+      ],
+    });
+    expect(drawn.ok).toBe(true);
+    const sel = get_current_selection();
+    expect(sel.selection?.kind).toBe("lasso");
+    expect(sel.selection?.saved).toBe(false);
+    expect(sel.selection?.polygon?.type).toBe("Polygon");
+    expect(sel.note).toMatch(/not sent to a server/i);
+    expect(get_unsaved_changes().selection?.kind).toBe("lasso");
+  });
 });
+
+describe("GroundCheck", () => {
+  it("send_ground_check does not invent a field reply", () => {
+    const sent = send_ground_check({ district: "gorakhpur" });
+    expect(sent.ok).toBe(true);
+    if (!sent.ok) throw new Error("expected send");
+    expect(sent.check.reply).toBeNull();
+    expect(sent.fieldPath).toMatch(/field=/);
+    expect(sent.check.question.length).toBeGreaterThan(10);
+    const approveEmpty = approve_evidence({ checkId: sent.check.id });
+    expect(approveEmpty.ok).toBe(false);
+    expect(String(approveEmpty.error)).toMatch(/no field reply/i);
+  });
+
+  it("does not reuse an ID when two checks are sent in the same millisecond", () => {
+    const now = 1_725_000_000_000;
+    const spy = vi.spyOn(Date, "now").mockReturnValue(now);
+    const first = send_ground_check({ district: "gorakhpur", question: "Canal in Gorakhpur?" });
+    const second = send_ground_check({ district: "ballia", question: "Canal in Ballia?" });
+    spy.mockRestore();
+    expect(first.ok && second.ok).toBe(true);
+    if (!first.ok || !second.ok) throw new Error("expected two sends");
+    expect(first.check.id).not.toBe(second.check.id);
+    expect(first.check.districtId).toBe("gorakhpur");
+    expect(second.check.districtId).toBe("ballia");
+    expect(getState().groundChecks.map((c) => c.id).sort()).toEqual(
+      [first.check.id, second.check.id].sort(),
+    );
+    expect(load_field_check(first.check.id)?.districtId).toBe("gorakhpur");
+    expect(load_field_check(second.check.id)?.districtId).toBe("ballia");
+    expect(load_field_check(first.check.id)?.question).toMatch(/Gorakhpur/);
+    expect(load_field_check(second.check.id)?.question).toMatch(/Ballia/);
+  });
+
+  it("approve_evidence only works after a real photo+answer submit", () => {
+    const sent = send_ground_check({ district: "gorakhpur", question: "Is the canal seasonal?" });
+    expect(sent.ok).toBe(true);
+    if (!sent.ok) throw new Error("expected send");
+    const missingPhoto = submit_field_reply({
+      checkId: sent.check.id,
+      answer: "Seasonal",
+      photoDataUrl: null,
+    });
+    expect(missingPhoto.ok).toBe(false);
+    const replied = submit_field_reply({
+      checkId: sent.check.id,
+      answer: "Seasonal. The canal is dry in May.",
+      photoDataUrl: "data:image/jpeg;base64,/9j/aaaa",
+      gps: { lat: 26.76, lon: 83.37, accuracyM: 12 },
+      capturedAt: "2026-08-27T10:00:00Z",
+    });
+    expect(replied.ok).toBe(true);
+    if (!replied.ok) throw new Error("expected reply");
+    expect(replied.check.reply?.answer).toMatch(/Seasonal/);
+    expect(replied.check.reply?.photoDataUrl).toMatch(/^data:image/);
+    expect(replied.check.reply?.gps?.lat).toBeCloseTo(26.76);
+    const approved = approve_evidence({ checkId: sent.check.id });
+    expect(approved.ok).toBe(true);
+    if (!approved.ok) throw new Error("expected approve");
+    expect(approved.check.status).toBe("approved");
+  });
+
+  it("does not approve an unrelated replied check when checkId is stale", () => {
+    const stale = send_ground_check({ district: "gorakhpur", question: "Stale canal check?" });
+    const live = send_ground_check({ district: "ballia", question: "Any standing water?" });
+    expect(stale.ok && live.ok).toBe(true);
+    if (!stale.ok || !live.ok) throw new Error("expected two checks");
+    const replied = submit_field_reply({
+      checkId: live.check.id,
+      answer: "No standing water at the mill road.",
+      photoDataUrl: "data:image/jpeg;base64,/9j/aaaa",
+      gps: { lat: 25.76, lon: 84.15, accuracyM: 8 },
+      capturedAt: "2026-08-27T11:00:00Z",
+    });
+    expect(replied.ok).toBe(true);
+    const missing = approve_evidence({ checkId: "gc-stale-missing" });
+    expect(missing.ok).toBe(false);
+    expect(String(missing.error)).toMatch(/gc-stale-missing/i);
+    expect(String(missing.error)).toMatch(/will not fall back/i);
+    const after = getState().groundChecks;
+    expect(after.find((c) => c.id === live.check.id)?.status).toBe("replied");
+    expect(after.find((c) => c.id === live.check.id)?.status).not.toBe("approved");
+    expect(after.find((c) => c.id === stale.check.id)?.status).not.toBe("approved");
+    const fallback = approve_evidence();
+    expect(fallback.ok).toBe(true);
+    if (!fallback.ok) throw new Error("expected fallback approve");
+    expect(fallback.check.id).toBe(live.check.id);
+  });
+
+  it("approve_evidence with no checkId picks the later reply.receivedAt across desk and store", () => {
+    const deskOlder = send_ground_check({ district: "gorakhpur", question: "Older desk canal?" });
+    const storeNewer = send_ground_check({ district: "ballia", question: "Newer store canal?" });
+    expect(deskOlder.ok && storeNewer.ok).toBe(true);
+    if (!deskOlder.ok || !storeNewer.ok) throw new Error("expected two sends");
+    const olderReply = submit_field_reply({
+      checkId: deskOlder.check.id,
+      answer: "Older desk photo of the canal.",
+      photoDataUrl: "data:image/jpeg;base64,/9j/aaaa",
+      gps: { lat: 26.76, lon: 83.37, accuracyM: 12 },
+      capturedAt: "2026-08-01T10:00:00Z",
+    });
+    const newerReply = submit_field_reply({
+      checkId: storeNewer.check.id,
+      answer: "Newer store photo of the mill road.",
+      photoDataUrl: "data:image/jpeg;base64,/9j/aaaa",
+      gps: { lat: 25.76, lon: 84.15, accuracyM: 8 },
+      capturedAt: "2026-08-27T12:00:00Z",
+    });
+    expect(olderReply.ok && newerReply.ok).toBe(true);
+    if (!olderReply.ok || !newerReply.ok) throw new Error("expected two replies");
+    if (!olderReply.check.reply || !newerReply.check.reply) {
+      throw new Error("expected real replies");
+    }
+    const olderOnDesk = {
+      ...olderReply.check,
+      reply: { ...olderReply.check.reply, receivedAt: "2026-08-01T08:00:00.000Z" },
+    };
+    const newerInStore = {
+      ...newerReply.check,
+      reply: { ...newerReply.check.reply, receivedAt: "2026-08-27T14:00:00.000Z" },
+    };
+    writeStoredCheck(olderOnDesk);
+    writeStoredCheck(newerInStore);
+    patchState({ groundChecks: [olderOnDesk] });
+    const approved = approve_evidence();
+    expect(approved.ok).toBe(true);
+    if (!approved.ok) throw new Error("expected approve store-newer");
+    expect(approved.check.id).toBe(storeNewer.check.id);
+    expect(approved.check.status).toBe("approved");
+    expect(getState().groundChecks.find((c) => c.id === storeNewer.check.id)?.status).toBe(
+      "approved",
+    );
+    expect(getState().groundChecks.find((c) => c.id === deskOlder.check.id)?.status).not.toBe(
+      "approved",
+    );
+  });
+
+  it("does not treat whitespace-only checkId as omitted fallback", () => {
+    const live = send_ground_check({ district: "ballia", question: "Any standing water?" });
+    expect(live.ok).toBe(true);
+    if (!live.ok) throw new Error("expected send");
+    const replied = submit_field_reply({
+      checkId: live.check.id,
+      answer: "No standing water.",
+      photoDataUrl: "data:image/jpeg;base64,/9j/aaaa",
+      gps: { lat: 25.76, lon: 84.15, accuracyM: 8 },
+      capturedAt: "2026-08-27T11:00:00Z",
+    });
+    expect(replied.ok).toBe(true);
+    const blank = approve_evidence({ checkId: "   " });
+    expect(blank.ok).toBe(false);
+    expect(String(blank.error)).toMatch(/empty/i);
+    expect(String(blank.error)).toMatch(/will not fall back/i);
+    expect(getState().groundChecks.find((c) => c.id === live.check.id)?.status).toBe("replied");
+    const viaTool = WEBMCP_TOOLS.find((t) => t.name === "approve_evidence")!.execute({
+      checkId: "\t  ",
+    }) as { ok: boolean; error?: string };
+    expect(viaTool.ok).toBe(false);
+    expect(String(viaTool.error)).toMatch(/empty/i);
+    expect(getState().groundChecks.find((c) => c.id === live.check.id)?.status).toBe("replied");
+  });
+
+  it("approves a replied check from same-tab localStorage after a desk reload", () => {
+    const sent = send_ground_check({ district: "gorakhpur", question: "Is the canal seasonal?" });
+    expect(sent.ok).toBe(true);
+    if (!sent.ok) throw new Error("expected send");
+    const replied = submit_field_reply({
+      checkId: sent.check.id,
+      answer: "Seasonal. The canal is dry in May.",
+      photoDataUrl: "data:image/jpeg;base64,/9j/aaaa",
+      gps: { lat: 26.76, lon: 83.37, accuracyM: 12 },
+      capturedAt: "2026-08-27T10:00:00Z",
+    });
+    expect(replied.ok).toBe(true);
+    replaceState(emptyWorkspace());
+    expect(getState().groundChecks).toEqual([]);
+    const loaded = load_field_check(sent.check.id);
+    expect(loaded?.status).toBe("replied");
+    expect(loaded?.reply?.answer).toMatch(/Seasonal/);
+    const approved = approve_evidence({ checkId: sent.check.id });
+    expect(approved.ok).toBe(true);
+    if (!approved.ok) throw new Error("expected approve from store");
+    expect(approved.check.id).toBe(sent.check.id);
+    expect(approved.check.status).toBe("approved");
+    expect(getState().groundChecks.find((c) => c.id === sent.check.id)?.status).toBe("approved");
+  });
+
+  it("WebMCP GroundCheck tools call the same commands as the UI", () => {
+    const sendTool = WEBMCP_TOOLS.find((t) => t.name === "send_ground_check");
+    const approveTool = WEBMCP_TOOLS.find((t) => t.name === "approve_evidence");
+    expect(sendTool).toBeTruthy();
+    expect(approveTool).toBeTruthy();
+    const sent = sendTool!.execute({ district: "ballia", question: "Any standing water?" }) as {
+      ok: boolean;
+      check?: { id: string; reply: null };
+    };
+    expect(sent.ok).toBe(true);
+    expect(sent.check?.reply).toBeNull();
+    const denied = approveTool!.execute({ checkId: sent.check?.id }) as { ok: boolean };
+    expect(denied.ok).toBe(false);
+  });
+
+  it("treats a missing same-browser store as a gap before any field capture", () => {
+    const sent = send_ground_check({ district: "gorakhpur", question: "Is the canal seasonal?" });
+    expect(sent.ok).toBe(true);
+    if (!sent.ok) throw new Error("expected send");
+    const here = fieldCaptureAllowed(sent.check.id);
+    expect(here.ok).toBe(true);
+    localStorage.clear();
+    replaceState(emptyWorkspace());
+    expect(load_field_check(sent.check.id)).toBeNull();
+    const otherDevice = fieldCaptureAllowed(sent.check.id);
+    expect(otherDevice.ok).toBe(false);
+    if (otherDevice.ok) throw new Error("expected gap");
+    expect(otherDevice.gap).toMatch(/another device/i);
+    expect(otherDevice.gap).toMatch(/not collected/i);
+  });
+});
+
